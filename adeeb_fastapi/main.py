@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status, Depends, HTTPException
+from fastapi import FastAPI, status
 from scalar_fastapi import get_scalar_api_reference # pyright:ignore[reportUnknownVariableType]
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -6,7 +6,8 @@ from contextlib import asynccontextmanager
 ###
 from adeeb_fastapi.database.index import async_engine
 from adeeb_fastapi.database.models import Base
-
+# Components
+from adeeb_fastapi.components.adeebs.router import router as adeeb_router
 
 
 @asynccontextmanager
@@ -68,5 +69,8 @@ async def scalar_html() :
 @app.get("/ping",status_code=status.HTTP_200_OK)
 async def ping():    
     return {"message": "pong"}
+
+### Adding API routes
+app.include_router(adeeb_router, prefix="/api")
 
 
