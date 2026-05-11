@@ -23,8 +23,8 @@ time_period_enum = Enum('جاهلي', 'أموي', 'عباسي', 'أندلسي', 
 
 
 
-class Poet(Timestamps, Base):
-    __tablename__: str = "poets"
+class Adeeb(Timestamps, Base):
+    __tablename__: str = "adeebs"
 
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), server_default=text("gen_random_uuid()"), primary_key=True, nullable=False)
     name: Mapped[str | None] = mapped_column(String(length=256), nullable=True)
@@ -33,9 +33,9 @@ class Poet(Timestamps, Base):
     reviewed: Mapped[bool] = mapped_column(Boolean(), default=False)
 
     ### Relationships
-    poems: Mapped[list[Poem]] = relationship(back_populates="poet")
-    chosen_verses: Mapped[list[ChosenVerses]] = relationship(back_populates="poet")
-    prose_qoutes: Mapped[list[ProseQoutes]] = relationship(back_populates="poet")
+    poems: Mapped[list[Poem]] = relationship(back_populates="adeeb")
+    chosen_verses: Mapped[list[ChosenVerses]] = relationship(back_populates="adeeb")
+    prose_qoutes: Mapped[list[ProseQoutes]] = relationship(back_populates="adeeb")
 
 class Poem(Timestamps, Base):
     __tablename__: str = "poems"
@@ -50,8 +50,8 @@ class Poem(Timestamps, Base):
     is_couplet: Mapped[bool] = mapped_column(Boolean(), default=True)
 
     ### Relationships
-    poet_id: Mapped[UUID] = mapped_column(ForeignKey("poets.id"), nullable=False)
-    poet: Mapped[Poet] = relationship(back_populates="poems")
+    adeeb_id: Mapped[UUID] = mapped_column(ForeignKey("adeebs.id"), nullable=False)
+    adeeb: Mapped[Adeeb] = relationship(back_populates="poems")
 
     chosen_verses: Mapped[list[ChosenVerses]] = relationship(back_populates="poem")
 
@@ -66,8 +66,8 @@ class ChosenVerses(Timestamps, Base):
     reviewed: Mapped[bool] = mapped_column(Boolean(), default=False)
 
     ### Relationships
-    poet_id: Mapped[UUID] = mapped_column(ForeignKey("poets.id"), nullable=False)
-    poet: Mapped[Poet] = relationship(back_populates="chosen_verses")
+    adeeb_id: Mapped[UUID] = mapped_column(ForeignKey("adeebs.id"), nullable=False)
+    adeeb: Mapped[Adeeb] = relationship(back_populates="chosen_verses")
 
     poem_id: Mapped[UUID] = mapped_column(ForeignKey("poems.id"), nullable=False)
     poem: Mapped[Poem] = relationship(back_populates="chosen_verses")
@@ -78,10 +78,11 @@ class ProseQoutes(Timestamps, Base):
 
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), server_default=text("gen_random_uuid()"), primary_key=True, nullable=False)
     tags: Mapped[list[str]] = mapped_column(ARRAY(String(length=256)), default=[])
-    qoute: Mapped[str] = mapped_column(String(length=1024), nullable=False)
+    qoute: Mapped[str] = mapped_column(String(length=512), nullable=False)
+    source: Mapped[str] = mapped_column(String(length=128), nullable=False)
     reviewed: Mapped[bool] = mapped_column(Boolean(), default=False)
 
     ### Relationships
-    poet_id: Mapped[UUID] = mapped_column(ForeignKey("poets.id"), nullable=False)
-    poet: Mapped[Poet] = relationship(back_populates="prose_qoutes")
+    adeeb_id: Mapped[UUID] = mapped_column(ForeignKey("adeebs.id"), nullable=False)
+    adeeb: Mapped[Adeeb] = relationship(back_populates="prose_qoutes")
 
