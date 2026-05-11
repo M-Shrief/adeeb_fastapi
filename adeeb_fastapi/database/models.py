@@ -11,8 +11,8 @@ class Base(DeclarativeBase):
     """Base class for SQLAlchemy models."""
     pass
 
-class Timestamps(Base):
-    # Entity Timestamps
+class Timestamps():
+    """Entity Timestamps"""
     created_at: Mapped[datetime] = mapped_column(DateTime(), server_default=text("CURRENT_TIMESTAMP"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(), server_default=text("CURRENT_TIMESTAMP"), onupdate=text("CURRENT_TIMESTAMP"))
 

@@ -2,10 +2,22 @@ from fastapi import FastAPI, status, Depends, HTTPException
 from scalar_fastapi import get_scalar_api_reference # pyright:ignore[reportUnknownVariableType]
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from contextlib import asynccontextmanager
 ###
+from adeeb_fastapi.database.index import async_engine
+from adeeb_fastapi.database.models import Base
+
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with async_engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    yield
+
 
 app = FastAPI(
-#    lifespan=,
+   lifespan=lifespan,
     title="Adeeb FastAPI",
     description="An Iteration for Adeeb's RESTful API using Python, FastAPI and Postgres.",
     summary="An Iteration for Adeeb's RESTful API using Python",
