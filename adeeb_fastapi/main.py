@@ -8,6 +8,8 @@ from adeeb_fastapi.database.index import async_engine
 from adeeb_fastapi.database.models import Base
 # Components
 from adeeb_fastapi.components.adeebs.router import router as adeeb_router
+# Schemas
+from adeeb_fastapi.schemas import api  as api_schemas
 
 
 @asynccontextmanager
@@ -66,9 +68,9 @@ async def scalar_html() :
         title=app.title,
     )
 
-@app.get("/ping",status_code=status.HTTP_200_OK)
+@app.get("/ping",status_code=status.HTTP_200_OK, response_model=api_schemas.BaseRes)
 async def ping():    
-    return {"message": "pong"}
+    return api_schemas.BaseRes(message="pong")
 
 ### Adding API routes
 app.include_router(adeeb_router, prefix="/api")
