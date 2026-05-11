@@ -21,13 +21,6 @@ class Timestamps():
 # Enums
 time_period_enum = Enum('جاهلي', 'أموي', 'عباسي', 'أندلسي', 'عثماني ومملوكي', 'متأخر وحديث', 'غير محدد', name="time_period_enum")
 
-# Many-to-Many relations
-poet_poet_table = Table(
-    "poet_poet_table",
-    Base.metadata,
-    Column("poet_id", ForeignKey("poets.id")),
-    Column("poem_id", ForeignKey("poems.id")),
-)
 
 
 class Poet(Timestamps, Base):
@@ -41,6 +34,8 @@ class Poet(Timestamps, Base):
 
     ### Relationships
     poems: Mapped[list[Poem]] = relationship(back_populates="poet")
+    chosen_verses: Mapped[list[ChosenVerses]] = relationship(back_populates="poet")
+    prose_qoutes: Mapped[list[ProseQoutes]] = relationship(back_populates="poet")
 
 class Poem(Timestamps, Base):
     __tablename__: str = "poems"
@@ -57,3 +52,36 @@ class Poem(Timestamps, Base):
     ### Relationships
     poet_id: Mapped[UUID] = mapped_column(ForeignKey("poets.id"), nullable=False)
     poet: Mapped[Poet] = relationship(back_populates="poems")
+
+    chosen_verses: Mapped[list[ChosenVerses]] = relationship(back_populates="poem")
+
+
+class ChosenVerses(Timestamps, Base):
+    __tablename__: str = "chosen_verses_table"
+
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), server_default=text("gen_random_uuid()"), primary_key=True, nullable=False)
+    tags: Mapped[list[str]] = mapped_column(ARRAY(String(length=256)), default=[])
+    verses: Mapped[list[str]] = mapped_column(ARRAY(String(length=256)), default=[])
+    is_couplet: Mapped[bool] = mapped_column(Boolean(), default=True)
+    reviewed: Mapped[bool] = mapped_column(Boolean(), default=False)
+
+    ### Relationships
+    poet_id: Mapped[UUID] = mapped_column(ForeignKey("poets.id"), nullable=False)
+    poet: Mapped[Poet] = relationship(back_populates="chosen_verses")
+
+    poem_id: Mapped[UUID] = mapped_column(ForeignKey("poems.id"), nullable=False)
+    poem: Mapped[Poem] = relationship(back_populates="chosen_verses")
+
+
+class ProseQoutes(Timestamps, Base):
+    __tablename__: str = "prose_qoutes"
+
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), server_default=text("gen_random_uuid()"), primary_key=True, nullable=False)
+    tags: Mapped[list[str]] = mapped_column(ARRAY(String(length=256)), default=[])
+    qoute: Mapped[str] = mapped_column(String(length=1024), nullable=False)
+    reviewed: Mapped[bool] = mapped_column(Boolean(), default=False)
+
+    ### Relationships
+    poet_id: Mapped[UUID] = mapped_column(ForeignKey("poets.id"), nullable=False)
+    poet: Mapped[Poet] = relationship(back_populates="prose_qoutes")
+
