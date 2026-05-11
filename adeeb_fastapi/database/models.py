@@ -1,3 +1,4 @@
+from os import posix_openpt
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship, validates
 from sqlalchemy import Table, Column, DateTime, Enum, ARRAY, String, text, SmallInteger, Boolean, ForeignKey
 from datetime import datetime
@@ -20,6 +21,15 @@ class Timestamps():
 # Enums
 time_period_enum = Enum('جاهلي', 'أموي', 'عباسي', 'أندلسي', 'عثماني ومملوكي', 'متأخر وحديث', 'غير محدد', name="time_period_enum")
 
+# Many-to-Many relations
+poet_poet_table = Table(
+    "poet_poet_table",
+    Base.metadata,
+    Column("poet_id", ForeignKey("poets.id")),
+    Column("poem_id", ForeignKey("poems.id")),
+)
+
+
 class Poet(Timestamps, Base):
     __tablename__: str = "poets"
 
@@ -29,3 +39,21 @@ class Poet(Timestamps, Base):
     bio: Mapped[str | None] = mapped_column(String(length=1024), nullable=True)
     reviewed: Mapped[bool] = mapped_column(Boolean(), default=False)
 
+    ### Relationships
+    poems: Mapped[list[Poem]] = relationship(back_populates="poet")
+
+class Poem(Timestamps, Base):
+    __tablename__: str = "poems"
+
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), server_default=text("gen_random_uuid()"), primary_key=True, nullable=False)
+    intro: Mapped[str | None] = mapped_column(String(length=256), nullable=True)
+    reviewed: Mapped[bool] = mapped_column(Boolean(), default=False)
+    # instead of making a custom type for verses, 
+    # we'll use an array and add another field to know if it's couplet or not
+    # and in this way we support other poems that uses lines rather than couplet
+    verses: Mapped[list[str]] = mapped_column(ARRAY(String(length=256)), default=[])
+    is_couplet: Mapped[bool] = mapped_column(Boolean(), default=True)
+
+    ### Relationships
+    poet_id: Mapped[UUID] = mapped_column(ForeignKey("poets.id"), nullable=False)
+    poet: Mapped[Poet] = relationship(back_populates="poems")
