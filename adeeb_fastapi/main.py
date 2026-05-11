@@ -1,0 +1,60 @@
+from fastapi import FastAPI, status, Depends, HTTPException
+from scalar_fastapi import get_scalar_api_reference # pyright:ignore[reportUnknownVariableType]
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+###
+
+app = FastAPI(
+#    lifespan=,
+    title="Adeeb FastAPI",
+    description="An Iteration for Adeeb's RESTful API using Python, FastAPI and Postgres.",
+    summary="An Iteration for Adeeb's RESTful API using Python",
+    version="0.1.0",
+    # docs_url="/docs",
+    # redoc_url="/redoc"
+    )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.add_middleware(
+    GZipMiddleware,
+    minimum_size=1000,
+    compresslevel=5
+)
+
+@app.get("/", status_code=status.HTTP_200_OK)
+async def homepage():    
+    return {
+            "title": app.title,
+            "description": app.description,
+            "version": app.version,
+            "Swagger-documentation_url": app.docs_url,
+            "Redoc-documentation_url": app.redoc_url,
+            "Scalar-documentation_url": "/scalar"            
+        }
+
+@app.get(
+    "/scalar",
+    include_in_schema=False,
+    description="Scalar Modern API Client and Reference, check on https://github.com/scalar/scalar"
+    )
+async def scalar_html() :
+    if app.openapi_url is None:
+        return "Not Available"
+
+    return get_scalar_api_reference(
+        openapi_url=app.openapi_url,
+        title=app.title,
+    )
+
+@app.get("/ping",status_code=status.HTTP_200_OK)
+async def ping():    
+    return {"message": "pong"}
+
+
