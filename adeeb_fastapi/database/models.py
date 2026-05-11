@@ -57,7 +57,7 @@ class Poem(Timestamps, Base):
 
 
 class ChosenVerses(Timestamps, Base):
-    __tablename__: str = "chosen_verses_table"
+    __tablename__: str = "chosen_verses"
 
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), server_default=text("gen_random_uuid()"), primary_key=True, nullable=False)
     tags: Mapped[list[str]] = mapped_column(ARRAY(String(length=256)), default=[])
