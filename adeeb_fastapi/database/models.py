@@ -27,7 +27,7 @@ class Adeeb(Timestamps, Base):
     __tablename__: str = "adeebs"
 
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), server_default=text("gen_random_uuid()"), primary_key=True, nullable=False)
-    name: Mapped[str | None] = mapped_column(String(length=256), nullable=True)
+    name: Mapped[str | None] = mapped_column(String(length=256), unique=True, nullable=True)
     time_period: Mapped[TimePeriodEnum] = mapped_column(Enum(TimePeriodEnum, name="time_period_enum", native_enum=True), nullable=False)
     bio: Mapped[str | None] = mapped_column(String(length=1024), nullable=True)
     reviewed: Mapped[bool] = mapped_column(Boolean(), default=False)
@@ -41,7 +41,7 @@ class Poem(Timestamps, Base):
     __tablename__: str = "poems"
 
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), server_default=text("gen_random_uuid()"), primary_key=True, nullable=False)
-    intro: Mapped[str | None] = mapped_column(String(length=256), nullable=True)
+    intro: Mapped[str | None] = mapped_column(String(length=256), unique=True, nullable=True)
     reviewed: Mapped[bool] = mapped_column(Boolean(), default=False)
     # instead of making a custom type for verses, 
     # we'll use an array and add another field to know if it's couplet or not
