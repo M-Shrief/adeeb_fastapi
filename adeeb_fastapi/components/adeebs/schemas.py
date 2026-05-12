@@ -22,14 +22,10 @@ class CreateOneAdeeb_Res(BaseModel):
     created_at: general.CreatedAtField
     updated_at: general.UpdatedAtField
 
-class CreateManyAdeeb_Req(BaseModel):
-    data: list[CreateOneAdeeb_Req]
-
-
 class CreateManyAdeeb_Res(BaseModel):
-    created_items: Annotated[list[CreateOneAdeeb_Res], Field()]
-    invalid_items: Annotated[list[api.InvalidDataFieldType[CreateOneAdeeb_Req]], Field()]
-    success_count: Annotated[int, Field(gt=0)]
+    created_items: Annotated[list[CreateOneAdeeb_Res], Field(default=[])]
+    invalid_items: Annotated[list[api.InvalidDataFieldType[CreateOneAdeeb_Req]], Field(default=[])]
+    success_count: Annotated[int, Field(default=0)]
 
 class UpdateAdeeb_Req(BaseModel):
     name: adeebs.NameField_Optional

@@ -88,14 +88,14 @@ async def create_adeeb(adeeb: component_schemas.CreateOneAdeeb_Req, db: Annotate
     response_model=component_schemas.CreateManyAdeeb_Res,
     response_model_exclude_none=True
 )
-async def create_adeebs(req_body: component_schemas.CreateManyAdeeb_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
+async def create_adeebs(data: list[component_schemas.CreateOneAdeeb_Req], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
         created_items: list[component_schemas.CreateOneAdeeb_Res] = []
         invalid_items: list[api_schemas.InvalidDataFieldType[component_schemas.CreateOneAdeeb_Req]] = []
 
-        for adeeb in req_body.data:
+        for item in data:
             try:
-                new_adeeb = AdeebModel(**adeeb.model_dump())
+                new_adeeb = AdeebModel(**item.model_dump())
                 db.add(new_adeeb)
                 await db.commit()
                 await db.refresh(new_adeeb)
@@ -109,7 +109,7 @@ async def create_adeebs(req_body: component_schemas.CreateManyAdeeb_Req, db: Ann
                     msg = "An error occurred while creating a adeeb, try again later."                
 
                 invalid_items.append(api_schemas.InvalidDataFieldType[component_schemas.CreateOneAdeeb_Req](
-                    item=adeeb,
+                    item=item,
                     message=msg
                     ))
 

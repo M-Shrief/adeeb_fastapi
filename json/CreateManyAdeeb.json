@@ -1,6 +1,5 @@
 {
-    "req_body": {
-        "data": [
+    "req_body": [
             {
                 "name": "عنترة بن شداد",
                 "time_period": "جاهلي",
@@ -38,10 +37,6 @@
                 "reviewed": true
             }
         ],
-        "total_count": 10,
-        "offset": 0,
-        "limit": 100
-    },
     "res": {
         "created_items": [
             {
