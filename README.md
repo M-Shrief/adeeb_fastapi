@@ -1,7 +1,14 @@
 # Adeeb_FastAPI
 An Iteration for Adeeb's RESTful API using Python, FastAPI and Postgres.
 
+## Roadmap
+- Make this iteration the primary one instead of Nodejs iteration
+- Hardening security:
+	- Requiring JWT token for PUT/DELETE requests
+	- Handling Top 10 OWASP security threats.
+
 ## Changes
+Changes from primary iteration:
 - Instead of making a custom type for verses, we use a normal array and add another field is_couplet. And in this way we improve our support for other poems that uses lines rather than couplets
 
 - Changed Naming for:
