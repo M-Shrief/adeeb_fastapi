@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, status, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, exc, delete, func
 from typing import Annotated, Any, Literal
+from uuid import UUID
 ###
 from adeeb_fastapi.utils.logger import logger
 from adeeb_fastapi.database.index import get_async_db
@@ -36,6 +37,26 @@ async def get_adeebs(queries: Annotated[api_schemas.SharedQueriesForGetManyReque
         logger.error("Error when getting adeebs", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
+@router.get(
+    "/adeebs/{id}",
+    status_code=status.HTTP_200_OK,
+    response_model=component_schemas.GetAdeeb_Res,
+    response_model_exclude_none=True
+)
+async def get_adeeb_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
+    try:
+        stmt = select(AdeebModel).where(AdeebModel.id == id)
+        res = await db.scalars(statement=stmt)
+        adeeb = res.unique().one()
+        return adeeb
+
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="adeeb is not found!")
+    except Exception as e:
+        logger.error("Error when getting a adeeb by id", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
+
+
 
 @router.post(
     path="/adeebs",
@@ -56,7 +77,7 @@ async def create_adeeb(adeeb: component_schemas.CreateOne_Req, db: Annotated[Asy
         logger.error("Error occurred while creating a adeeb", error=e)
         await db.rollback()
         if "psycopg.errors.UniqueViolation" in str(e):
-            detail_msg = "Category does already exists"
+            detail_msg = "adeeb does already exists"
             raise HTTPException(status.HTTP_409_CONFLICT, detail=detail_msg)
         else:
             detail_msg = "An error occurred while creating a adeeb, try again later."

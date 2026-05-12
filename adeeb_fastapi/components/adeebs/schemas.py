@@ -3,6 +3,9 @@ from pydantic import BaseModel
 ###
 from adeeb_fastapi.schemas import adeebs, general
 
+class GetAdeeb_Res(adeebs.DescriptiveSchema):
+    pass
+
 class CreateOne_Req(BaseModel):
     name: adeebs.NameField
     time_period: adeebs.TimePeriodField
