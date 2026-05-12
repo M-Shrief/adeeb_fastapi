@@ -123,3 +123,29 @@ async def create_adeebs(req_body: component_schemas.CreateManyAdeeb_Req, db: Ann
     except Exception as e:
         detail_msg = "An error occurred while creating many adeeb entities, try again later."
         raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
+
+@router.put(
+    "/adeebs/{id}",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=api_schemas.Update_Res,
+    response_model_exclude_none=True
+)
+async def update_adeeb(id: UUID, req_body: component_schemas.UpdateAdeeb_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
+    try:
+        stmt = select(AdeebModel).where(AdeebModel.id == id)
+        res = await db.scalars(statement=stmt)    
+        existing_adeeb = res.unique().one()
+
+        new_adeeb_data = req_body.model_dump(exclude_none=True)  # Exclude None fields from the request body
+
+        for key, value in new_adeeb_data.items():
+            setattr(existing_adeeb, key, value)
+
+        await db.commit()
+        return api_schemas.Update_Res()
+        
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Adeeb is not found!")
+    except Exception as e:
+        logger.error("Error when updating adeeb", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")

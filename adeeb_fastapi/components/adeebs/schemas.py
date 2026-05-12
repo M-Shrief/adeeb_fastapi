@@ -30,3 +30,9 @@ class CreateManyAdeeb_Res(BaseModel):
     created_items: Annotated[list[CreateOneAdeeb_Res], Field()]
     invalid_items: Annotated[list[api.InvalidDataFieldType[CreateOneAdeeb_Req]], Field()]
     success_count: Annotated[int, Field(gt=0)]
+
+class UpdateAdeeb_Req(BaseModel):
+    name: adeebs.NameField_Optional
+    time_period: adeebs.TimePeriodField_Optional
+    bio: adeebs.BioField_Optional
+    reviewed: general.ReviewedField_Optional
