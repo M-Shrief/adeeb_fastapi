@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Annotated, TypeVar, Generic
+from typing import Annotated, TypeVar, Generic, TypedDict
 ###
 
 class BaseRes(BaseModel):
@@ -28,6 +28,11 @@ class GetAll_Res(BaseModel, Generic[DataType]):
     total_count: Annotated[int, Field(default=0)]
     offset: Annotated[int, Field()]
     limit: Annotated[int, Field()]
+
+class InvalidDataFieldType(TypedDict, Generic[DataType]):
+    """Invalid data field is used in CreateMany's Response scehmas"""
+    item: DataType
+    message: str
 
 class Update_Res(BaseModel):
     pass

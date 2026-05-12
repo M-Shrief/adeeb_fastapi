@@ -57,14 +57,13 @@ async def get_adeeb_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_asyn
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 
-
 @router.post(
     path="/adeebs",
     status_code=status.HTTP_201_CREATED,
-    response_model=component_schemas.CreateOne_Res,
+    response_model=component_schemas.CreateOneAdeeb_Res,
     response_model_exclude_none=True
 )
-async def create_adeeb(adeeb: component_schemas.CreateOne_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
+async def create_adeeb(adeeb: component_schemas.CreateOneAdeeb_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
         new_adeeb = AdeebModel(**adeeb.model_dump())
         db.add(new_adeeb)
@@ -82,3 +81,45 @@ async def create_adeeb(adeeb: component_schemas.CreateOne_Req, db: Annotated[Asy
         else:
             detail_msg = "An error occurred while creating a adeeb, try again later."
             raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
+
+@router.post(
+    path="/adeebs/many",
+    status_code=status.HTTP_201_CREATED,
+    response_model=component_schemas.CreateManyAdeeb_Res,
+    response_model_exclude_none=True
+)
+async def create_adeebs(req_body: component_schemas.CreateManyAdeeb_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
+    try:
+        created_items: list[component_schemas.CreateOneAdeeb_Res] = []
+        invalid_items: list[api_schemas.InvalidDataFieldType[component_schemas.CreateOneAdeeb_Req]] = []
+
+        for adeeb in req_body.data:
+            try:
+                new_adeeb = AdeebModel(**adeeb.model_dump())
+                db.add(new_adeeb)
+                await db.commit()
+                await db.refresh(new_adeeb)
+
+                created_items.append(component_schemas.CreateOneAdeeb_Res.model_validate(new_adeeb, from_attributes=True))
+            except Exception as e:
+                logger.error("Error occurred while creating a adeeb", error=e)
+                if "psycopg.errors.UniqueViolation" in str(e):
+                    msg = "adeeb does already exists"
+                else:
+                    msg = "An error occurred while creating a adeeb, try again later."                
+
+                invalid_items.append(api_schemas.InvalidDataFieldType[component_schemas.CreateOneAdeeb_Req](
+                    item=adeeb,
+                    message=msg
+                    ))
+
+        return component_schemas.CreateManyAdeeb_Res(
+            created_items=created_items,
+            success_count=len(created_items),
+            invalid_items=invalid_items
+        )
+
+
+    except Exception as e:
+        detail_msg = "An error occurred while creating many adeeb entities, try again later."
+        raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)

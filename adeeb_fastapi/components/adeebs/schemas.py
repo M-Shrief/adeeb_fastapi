@@ -1,18 +1,19 @@
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Annotated
 ###
-from adeeb_fastapi.schemas import adeebs, general
+from adeeb_fastapi.schemas import adeebs, general, api
 
 class GetAdeeb_Res(adeebs.DescriptiveSchema):
     pass
 
-class CreateOne_Req(BaseModel):
+class CreateOneAdeeb_Req(BaseModel):
     name: adeebs.NameField
     time_period: adeebs.TimePeriodField
     bio: adeebs.BioField
     reviewed: general.ReviewedField
 
-class CreateOne_Res(BaseModel):
+class CreateOneAdeeb_Res(BaseModel):
     id: general.IDField
     name: adeebs.NameField
     time_period: adeebs.TimePeriodField
@@ -20,3 +21,12 @@ class CreateOne_Res(BaseModel):
     reviewed: general.ReviewedField
     created_at: general.CreatedAtField
     updated_at: general.UpdatedAtField
+
+class CreateManyAdeeb_Req(BaseModel):
+    data: list[CreateOneAdeeb_Req]
+
+
+class CreateManyAdeeb_Res(BaseModel):
+    created_items: Annotated[list[CreateOneAdeeb_Res], Field()]
+    invalid_items: Annotated[list[api.InvalidDataFieldType[CreateOneAdeeb_Req]], Field()]
+    success_count: Annotated[int, Field(gt=0)]
