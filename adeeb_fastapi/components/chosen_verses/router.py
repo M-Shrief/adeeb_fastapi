@@ -36,6 +36,26 @@ async def get_chosen_verses(queries: Annotated[api_schemas.SharedQueriesForGetMa
         logger.error("Error when getting chosen_verses", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
+@router.get(
+    "/chosen_verses/{id}",
+    status_code=status.HTTP_200_OK,
+    response_model=component_schemas.GetChosenVerses_Res,
+    response_model_exclude_none=True
+)
+async def get_chosen_verses_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
+    try:
+        stmt = select(ChosenVersesModel).where(ChosenVersesModel.id == id)
+        res = await db.scalars(statement=stmt)
+        chosen_verses = res.unique().one()
+        return chosen_verses
+
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="chosen_verses is not found!")
+    except Exception as e:
+        logger.error("Error when getting a chosen_verses by id", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
+
+
 @router.post(
     path="/chosen_verses",
     status_code=status.HTTP_201_CREATED,
