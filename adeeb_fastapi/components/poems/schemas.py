@@ -23,3 +23,8 @@ class CreateOnePoem_Res(BaseModel):
     reviewed: general.ReviewedField
     created_at: general.CreatedAtField
     updated_at: general.UpdatedAtField
+
+class CreateManyPoem_Res(BaseModel):
+    created_items: Annotated[list[CreateOnePoem_Res], Field(default=[])]
+    invalid_items: Annotated[list[api.InvalidDataFieldType[CreateOnePoem_Req]], Field(default=[])]
+    success_count: Annotated[int, Field(default=0)]

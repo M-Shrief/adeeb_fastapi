@@ -80,3 +80,45 @@ async def create_poem(poem: component_schemas.CreateOnePoem_Req, db: Annotated[A
         else:
             detail_msg = "An error occurred while creating a poem, try again later."
             raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
+
+@router.post(
+    path="/poems/many",
+    status_code=status.HTTP_201_CREATED,
+    response_model=component_schemas.CreateManyPoem_Res,
+    response_model_exclude_none=True
+)
+async def create_poems(data: list[component_schemas.CreateOnePoem_Req], db: Annotated[AsyncSession, Depends(get_async_db)]):
+    try:
+        created_items: list[component_schemas.CreateOnePoem_Res] = []
+        invalid_items: list[api_schemas.InvalidDataFieldType[component_schemas.CreateOnePoem_Req]] = []
+
+        for item in data:
+            try:
+                new_poem = PoemModel(**item.model_dump())
+                db.add(new_poem)
+                await db.commit()
+                await db.refresh(new_poem)
+
+                created_items.append(component_schemas.CreateOnePoem_Res.model_validate(new_poem, from_attributes=True))
+            except Exception as e:
+                logger.error("Error occurred while creating a poem", error=e)
+                if "psycopg.errors.UniqueViolation" in str(e):
+                    msg = "poem does already exists"
+                else:
+                    msg = "An error occurred while creating a poem, try again later."                
+
+                invalid_items.append(api_schemas.InvalidDataFieldType[component_schemas.CreateOnePoem_Req](
+                    item=item,
+                    message=msg
+                    ))
+
+        return component_schemas.CreateManyPoem_Res(
+            created_items=created_items,
+            success_count=len(created_items),
+            invalid_items=invalid_items
+        )
+
+
+    except Exception as e:
+        detail_msg = "An error occurred while creating many poem entities, try again later."
+        raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
