@@ -35,7 +35,7 @@ class Adeeb(Timestamps, Base):
     ### Relationships
     poems: Mapped[list[Poem]] = relationship(back_populates="adeeb")
     chosen_verses: Mapped[list[ChosenVerses]] = relationship(back_populates="adeeb")
-    prose_qoutes: Mapped[list[ProseQoutes]] = relationship(back_populates="adeeb")
+    prose_qoutes: Mapped[list[ProseQoute]] = relationship(back_populates="adeeb")
 
 class Poem(Timestamps, Base):
     __tablename__: str = "poems"
@@ -73,13 +73,13 @@ class ChosenVerses(Timestamps, Base):
     poem: Mapped[Poem] = relationship(back_populates="chosen_verses")
 
 
-class ProseQoutes(Timestamps, Base):
+class ProseQoute(Timestamps, Base):
     __tablename__: str = "prose_qoutes"
 
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), server_default=text("gen_random_uuid()"), primary_key=True, nullable=False)
     tags: Mapped[list[str]] = mapped_column(ARRAY(String(length=256)), default=[])
     qoute: Mapped[str] = mapped_column(String(length=512), nullable=False)
-    source: Mapped[str] = mapped_column(String(length=128), nullable=False)
+    source: Mapped[str | None] = mapped_column(String(length=128), nullable=True)
     reviewed: Mapped[bool] = mapped_column(Boolean(), default=False)
 
     ### Relationships
