@@ -122,3 +122,29 @@ async def create_poems(data: list[component_schemas.CreateOnePoem_Req], db: Anno
     except Exception as e:
         detail_msg = "An error occurred while creating many poem entities, try again later."
         raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
+
+@router.put(
+    "/poems/{id}",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=api_schemas.Update_Res,
+    response_model_exclude_none=True
+)
+async def update_poem(id: UUID, req_body: component_schemas.UpdatePoem_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
+    try:
+        stmt = select(PoemModel).where(PoemModel.id == id)
+        res = await db.scalars(statement=stmt)    
+        existing_poem = res.unique().one()
+
+        new_poem_data = req_body.model_dump(exclude_none=True)  # Exclude None fields from the request body
+
+        for key, value in new_poem_data.items():
+            setattr(existing_poem, key, value)
+
+        await db.commit()
+        return api_schemas.Update_Res()
+        
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poem is not found!")
+    except Exception as e:
+        logger.error("Error when updating poem", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")

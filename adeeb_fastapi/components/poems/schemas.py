@@ -28,3 +28,10 @@ class CreateManyPoem_Res(BaseModel):
     created_items: Annotated[list[CreateOnePoem_Res], Field(default=[])]
     invalid_items: Annotated[list[api.InvalidDataFieldType[CreateOnePoem_Req]], Field(default=[])]
     success_count: Annotated[int, Field(default=0)]
+
+class UpdatePoem_Req(BaseModel):
+    adeeb_id: general.AdeebIDField_Optional
+    intro: poems.IntroField_Optional
+    verses: poems.VersesField_Optional
+    is_couplet: poems.IsCoupletField_Optional
+    reviewed: general.ReviewedField_Optional
