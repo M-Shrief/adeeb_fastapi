@@ -10,6 +10,7 @@ from adeeb_fastapi.database.models import Base
 from adeeb_fastapi.components.adeebs.router import router as adeebs_router
 from adeeb_fastapi.components.poems.router import router as poems_router
 from adeeb_fastapi.components.chosen_verses.router import router as chosen_verses_router
+from adeeb_fastapi.components.prose_qoutes.router import router as prose_qoutes_router
 # Schemas
 from adeeb_fastapi.schemas import api  as api_schemas
 
@@ -78,5 +79,4 @@ async def ping():
 app.include_router(adeebs_router, prefix="/api")
 app.include_router(poems_router, prefix="/api")
 app.include_router(chosen_verses_router, prefix="/api")
-
-
+app.include_router(prose_qoutes_router, prefix="/api")
