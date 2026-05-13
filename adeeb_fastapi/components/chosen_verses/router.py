@@ -148,3 +148,22 @@ async def update_chosen_verses(id: UUID, req_body: component_schemas.UpdateChose
     except Exception as e:
         logger.error("Error when updating chosen_verses", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
+
+@router.delete(
+    "/chosen_verses/{id}",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=api_schemas.Delete_Res,
+    response_model_exclude_none=True
+)
+async def delete_chosen_verses(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
+    try:
+        stmt = delete(ChosenVersesModel).where(ChosenVersesModel.id == id)
+        _ = await db.execute(statement=stmt)
+        await db.commit()
+
+        return api_schemas.Delete_Res()
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ChosenVerses is not found!")
+    except Exception as e:
+        logger.error("Error when deleting chosen_verses", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
