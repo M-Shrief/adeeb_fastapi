@@ -122,3 +122,29 @@ async def create_prose_qoutes(data: list[component_schemas.CreateOneProseQoute_R
     except Exception as e:
         detail_msg = "An error occurred while creating many prose_qoute entities, try again later."
         raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
+
+@router.put(
+    "/prose_qoutes/{id}",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=api_schemas.Update_Res,
+    response_model_exclude_none=True
+)
+async def update_prose_qoute(id: UUID, req_body: component_schemas.UpdateProseQoute_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
+    try:
+        stmt = select(ProseQouteModel).where(ProseQouteModel.id == id)
+        res = await db.scalars(statement=stmt)    
+        existing_prose_qoute = res.unique().one()
+
+        new_prose_qoute_data = req_body.model_dump(exclude_none=True)  # Exclude None fields from the request body
+
+        for key, value in new_prose_qoute_data.items():
+            setattr(existing_prose_qoute, key, value)
+
+        await db.commit()
+        return api_schemas.Update_Res()
+        
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ProseQoute is not found!")
+    except Exception as e:
+        logger.error("Error when updating prose_qoute", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
