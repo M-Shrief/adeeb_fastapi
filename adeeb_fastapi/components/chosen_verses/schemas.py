@@ -31,3 +31,10 @@ class CreateManyChosenVerses_Res(BaseModel):
     invalid_items: Annotated[list[api.InvalidDataFieldType[CreateOneChosenVerses_Req]], Field(default=[])]
     success_count: Annotated[int, Field(default=0)]
 
+class UpdateChosenVerses_Req(BaseModel):
+    adeeb_id: general.AdeebIDField_Optional
+    poem_id: general.PoemIDField_Optional
+    tags: general.TagsField_Optional
+    verses: general.VersesField_Optional
+    is_couplet: general.IsCoupletField_Optional
+    reviewed: general.ReviewedField_Optional

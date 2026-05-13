@@ -123,3 +123,28 @@ async def create_many_chosen_verses(data: list[component_schemas.CreateOneChosen
         detail_msg = "An error occurred while creating many chosen_verses entities, try again later."
         raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
 
+@router.put(
+    "/chosen_verses/{id}",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=api_schemas.Update_Res,
+    response_model_exclude_none=True
+)
+async def update_chosen_verses(id: UUID, req_body: component_schemas.UpdateChosenVerses_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
+    try:
+        stmt = select(ChosenVersesModel).where(ChosenVersesModel.id == id)
+        res = await db.scalars(statement=stmt)    
+        existing_chosen_verses = res.unique().one()
+
+        new_chosen_verses_data = req_body.model_dump(exclude_none=True)  # Exclude None fields from the request body
+
+        for key, value in new_chosen_verses_data.items():
+            setattr(existing_chosen_verses, key, value)
+
+        await db.commit()
+        return api_schemas.Update_Res()
+        
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ChosenVerses is not found!")
+    except Exception as e:
+        logger.error("Error when updating chosen_verses", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
