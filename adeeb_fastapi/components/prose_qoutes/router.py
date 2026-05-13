@@ -36,6 +36,26 @@ async def get_prose_qoutes(queries: Annotated[api_schemas.SharedQueriesForGetMan
         logger.error("Error when getting prose_qoutes", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
+@router.get(
+    "/prose_qoutes/{id}",
+    status_code=status.HTTP_200_OK,
+    response_model=component_schemas.GetProseQoute_Res,
+    response_model_exclude_none=True
+)
+async def get_prose_qoute_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
+    try:
+        stmt = select(ProseQouteModel).where(ProseQouteModel.id == id)
+        res = await db.scalars(statement=stmt)
+        prose_qoute = res.unique().one()
+        return prose_qoute
+
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="prose_qoute is not found!")
+    except Exception as e:
+        logger.error("Error when getting a prose_qoute by id", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
+
+
 @router.post(
     path="/prose_qoutes",
     status_code=status.HTTP_201_CREATED,
