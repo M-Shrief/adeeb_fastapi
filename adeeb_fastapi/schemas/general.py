@@ -8,8 +8,16 @@ from enum import Enum
 
 # General Fields
 IDField = Annotated[UUID, Field()]
+
 ReviewedField = Annotated[bool, Field(default=False)]
 ReviewedField_Optional= Annotated[bool | None, Field(default=None)]
+
+VersesField = Annotated[list[str], Field(default=[])]
+VersesField_Optional =  Annotated[list[str] | None, Field(default=None)]
+
+IsCoupletField = Annotated[bool, Field(default=False)]
+IsCoupletField_Optional = Annotated[bool | None, Field(default=None)]
+
 CreatedAtField = Annotated[datetime, Field()]
 UpdatedAtField = Annotated[datetime, Field()]
 

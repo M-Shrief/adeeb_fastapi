@@ -10,16 +10,16 @@ class GetPoem_Res(poems.DescriptiveSchema):
 class CreateOnePoem_Req(BaseModel):
     adeeb_id: general.AdeebIDField
     intro: poems.IntroField
-    verses: poems.VersesField
-    is_couplet: poems.IsCoupletField
+    verses: general.VersesField
+    is_couplet: general.IsCoupletField
     reviewed: general.ReviewedField
 
 class CreateOnePoem_Res(BaseModel):
     id: general.IDField
     adeeb_id: general.AdeebIDField
     intro: poems.IntroField
-    verses: poems.VersesField
-    is_couplet: poems.IsCoupletField
+    verses: general.VersesField
+    is_couplet: general.IsCoupletField
     reviewed: general.ReviewedField
     created_at: general.CreatedAtField
     updated_at: general.UpdatedAtField
@@ -32,6 +32,6 @@ class CreateManyPoem_Res(BaseModel):
 class UpdatePoem_Req(BaseModel):
     adeeb_id: general.AdeebIDField_Optional
     intro: poems.IntroField_Optional
-    verses: poems.VersesField_Optional
-    is_couplet: poems.IsCoupletField_Optional
+    verses: general.VersesField_Optional
+    is_couplet: general.IsCoupletField_Optional
     reviewed: general.ReviewedField_Optional
