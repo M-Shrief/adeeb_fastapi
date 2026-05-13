@@ -148,3 +148,22 @@ async def update_prose_qoute(id: UUID, req_body: component_schemas.UpdateProseQo
     except Exception as e:
         logger.error("Error when updating prose_qoute", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
+
+@router.delete(
+    "/prose_qoutes/{id}",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=api_schemas.Delete_Res,
+    response_model_exclude_none=True
+)
+async def delete_prose_qoute(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
+    try:
+        stmt = delete(ProseQouteModel).where(ProseQouteModel.id == id)
+        _ = await db.execute(statement=stmt)
+        await db.commit()
+
+        return api_schemas.Delete_Res()
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ProseQoute is not found!")
+    except Exception as e:
+        logger.error("Error when deleting prose_qoute", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
