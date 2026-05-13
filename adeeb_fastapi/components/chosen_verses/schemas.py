@@ -25,3 +25,9 @@ class CreateOneChosenVerses_Res(BaseModel):
     reviewed: general.ReviewedField
     created_at: general.CreatedAtField
     updated_at: general.UpdatedAtField
+
+class CreateManyChosenVerses_Res(BaseModel):
+    created_items: Annotated[list[CreateOneChosenVerses_Res], Field(default=[])]
+    invalid_items: Annotated[list[api.InvalidDataFieldType[CreateOneChosenVerses_Req]], Field(default=[])]
+    success_count: Annotated[int, Field(default=0)]
+

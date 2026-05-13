@@ -80,3 +80,46 @@ async def create_one_chosen_verses(chosen_verses: component_schemas.CreateOneCho
         else:
             detail_msg = "An error occurred while creating a chosen_verses, try again later."
             raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
+
+@router.post(
+    path="/chosen_verses/many",
+    status_code=status.HTTP_201_CREATED,
+    response_model=component_schemas.CreateManyChosenVerses_Res,
+    response_model_exclude_none=True
+)
+async def create_many_chosen_verses(data: list[component_schemas.CreateOneChosenVerses_Req], db: Annotated[AsyncSession, Depends(get_async_db)]):
+    try:
+        created_items: list[component_schemas.CreateOneChosenVerses_Res] = []
+        invalid_items: list[api_schemas.InvalidDataFieldType[component_schemas.CreateOneChosenVerses_Req]] = []
+
+        for item in data:
+            try:
+                new_chosen_verses = ChosenVersesModel(**item.model_dump())
+                db.add(new_chosen_verses)
+                await db.commit()
+                await db.refresh(new_chosen_verses)
+
+                created_items.append(component_schemas.CreateOneChosenVerses_Res.model_validate(new_chosen_verses, from_attributes=True))
+            except Exception as e:
+                logger.error("Error occurred while creating a chosen_verses", error=e)
+                if "psycopg.errors.UniqueViolation" in str(e):
+                    msg = "chosen_verses does already exists"
+                else:
+                    msg = "An error occurred while creating a chosen_verses, try again later."                
+
+                invalid_items.append(api_schemas.InvalidDataFieldType[component_schemas.CreateOneChosenVerses_Req](
+                    item=item,
+                    message=msg
+                    ))
+
+        return component_schemas.CreateManyChosenVerses_Res(
+            created_items=created_items,
+            success_count=len(created_items),
+            invalid_items=invalid_items
+        )
+
+
+    except Exception as e:
+        detail_msg = "An error occurred while creating many chosen_verses entities, try again later."
+        raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
+
