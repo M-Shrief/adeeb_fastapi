@@ -18,6 +18,9 @@ VersesField_Optional =  Annotated[list[str] | None, Field(default=None)]
 IsCoupletField = Annotated[bool, Field(default=False)]
 IsCoupletField_Optional = Annotated[bool | None, Field(default=None)]
 
+TagsField = Annotated[list[str], Field(default=[])]
+TagsField_Optional =  Annotated[list[str] | None, Field(default=None)]
+
 CreatedAtField = Annotated[datetime, Field()]
 UpdatedAtField = Annotated[datetime, Field()]
 
