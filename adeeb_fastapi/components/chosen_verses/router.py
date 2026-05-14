@@ -7,6 +7,7 @@ from uuid import UUID
 from adeeb_fastapi.utils.logger import logger
 from adeeb_fastapi.database.index import get_async_db
 from adeeb_fastapi.database.models import ChosenVerses as ChosenVersesModel
+from adeeb_fastapi.database import joins
 from adeeb_fastapi.schemas import chosen_verses as chosen_verses_schemas, api as api_schemas
 from adeeb_fastapi.components.chosen_verses import schemas as component_schemas
 
@@ -45,6 +46,7 @@ async def get_chosen_verses(queries: Annotated[api_schemas.SharedQueriesForGetMa
 async def get_chosen_verses_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
         stmt = select(ChosenVersesModel).where(ChosenVersesModel.id == id)
+        stmt = stmt.options(joins.adeebs_to_chosen_verses).options(joins.poems_to_chosen_verses)
         res = await db.scalars(statement=stmt)
         chosen_verses = res.unique().one()
         return chosen_verses
