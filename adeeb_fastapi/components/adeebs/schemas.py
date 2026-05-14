@@ -2,10 +2,12 @@
 from pydantic import BaseModel, Field
 from typing import Annotated
 ###
-from adeeb_fastapi.schemas import adeebs, general, api
+from adeeb_fastapi.schemas import adeebs, general, api, poems, chosen_verses, prose_qoutes
 
 class GetAdeeb_Res(adeebs.DescriptiveSchema):
-    pass
+    poems: list[poems.MinimalSchema]
+    chosen_verses: list[chosen_verses.MinimalSchema]
+    prose_qoutes: list[prose_qoutes.MinimalSchema]
 
 class CreateOneAdeeb_Req(BaseModel):
     name: adeebs.NameField

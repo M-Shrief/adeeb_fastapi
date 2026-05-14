@@ -1,12 +1,14 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, exc, delete, func
+from sqlalchemy.orm import joinedload, load_only
 from typing import Annotated, Literal
 from uuid import UUID
 ###
 from adeeb_fastapi.utils.logger import logger
 from adeeb_fastapi.database.index import get_async_db
 from adeeb_fastapi.database.models import Adeeb as AdeebModel
+from adeeb_fastapi.database import joins
 from adeeb_fastapi.schemas import adeebs as adeeb_schemas, api as api_schemas
 from adeeb_fastapi.components.adeebs import schemas as component_schemas
 
@@ -46,6 +48,7 @@ async def get_adeebs(queries: Annotated[api_schemas.SharedQueriesForGetManyReque
 async def get_adeeb_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
         stmt = select(AdeebModel).where(AdeebModel.id == id)
+        stmt = stmt.options(joins.poems_to_adeeb).options(joins.chosen_verses_to_adeeb).options(joins.prose_qoutes_to_adeeb)
         res = await db.scalars(statement=stmt)
         adeeb = res.unique().one()
         return adeeb
