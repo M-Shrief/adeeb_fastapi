@@ -2,10 +2,10 @@
 from pydantic import BaseModel, Field
 from typing import Annotated
 ###
-from adeeb_fastapi.schemas import prose_qoutes, general, api
+from adeeb_fastapi.schemas import prose_qoutes, general, api, adeebs
 
 class GetProseQoute_Res(prose_qoutes.DescriptiveSchema):
-    pass
+    adeeb: adeebs.MinimalSchema
 
 class CreateOneProseQoute_Req(BaseModel):
     adeeb_id: general.AdeebIDField

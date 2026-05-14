@@ -7,6 +7,7 @@ from uuid import UUID
 from adeeb_fastapi.utils.logger import logger
 from adeeb_fastapi.database.index import get_async_db
 from adeeb_fastapi.database.models import ProseQoute as ProseQouteModel
+from adeeb_fastapi.database import joins
 from adeeb_fastapi.schemas import prose_qoutes as prose_qoutes_schemas, api as api_schemas
 from adeeb_fastapi.components.prose_qoutes import schemas as component_schemas
 
@@ -45,6 +46,7 @@ async def get_prose_qoutes(queries: Annotated[api_schemas.SharedQueriesForGetMan
 async def get_prose_qoute_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
         stmt = select(ProseQouteModel).where(ProseQouteModel.id == id)
+        stmt = stmt.options(joins.adeebs_to_prose_qoutes)
         res = await db.scalars(statement=stmt)
         prose_qoute = res.unique().one()
         return prose_qoute
