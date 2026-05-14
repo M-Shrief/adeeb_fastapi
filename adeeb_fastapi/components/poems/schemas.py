@@ -2,10 +2,11 @@
 from pydantic import BaseModel, Field
 from typing import Annotated
 ###
-from adeeb_fastapi.schemas import poems, general, api
+from adeeb_fastapi.schemas import poems, general, api, adeebs, chosen_verses
 
 class GetPoem_Res(poems.DescriptiveSchema):
-    pass
+    adeeb: adeebs.MinimalSchema
+    chosen_verses: list[chosen_verses.MinimalSchema]
 
 class CreateOnePoem_Req(BaseModel):
     adeeb_id: general.AdeebIDField
