@@ -26,3 +26,15 @@ DB = DatabaseConfigType(
     url= F"postgresql://{__env.get("DB_USER")}:{__env.get("DB_PASSWORD")}@{__env.get("DB_HOST")}:{__env.get("DB_PORT")}/{__env.get("DB_NAME")}",
     conn_str=  F"host={__env.get("DB_HOST")} port={__env.get("DB_PORT")} user={__env.get("DB_USER")} dbname={__env.get("DB_NAME")} password={__env.get("DB_PASSWORD")} sslmode=disable"        
     )
+
+class JWTKeysType(TypedDict):
+    private: str
+    public: str
+
+private_key_path = __env.get("JWT_PRIVATE")
+public_key_path = __env.get("JWT_PUBLIC")
+
+JWTKeys = JWTKeysType(
+    private=open(private_key_path if private_key_path is not None else "jwt_private_rsa256.key").read(),
+    public=open(public_key_path if public_key_path is not None else "jwt_public_rsa256.key").read(),
+)
