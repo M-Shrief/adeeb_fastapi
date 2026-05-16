@@ -82,6 +82,13 @@ def create_permissions(roles: list[RoleEnum])->list[str]:
 
     return permission
 
+
+def create_authorized_item(role: RoleEnum, op: Literal["read", "write"]):
+    if op == "write":
+        return role + WRITE_PERM
+    else:
+        return role + READ_PERM
+
 def is_authorized(authorized_list: list[str], permissions: list[str], op: Literal["read", "write"]):
     isAuthorized: bool = False
     is_banned = False

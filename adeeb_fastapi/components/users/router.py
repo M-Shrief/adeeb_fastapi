@@ -14,6 +14,118 @@ from adeeb_fastapi.components.users import schemas as component_schemas
 
 router = APIRouter(tags=["Users"])
 
+@router.get(
+    "/users",
+    status_code=status.HTTP_201_CREATED,
+    response_model=api_schemas.GetAll_Res[component_schemas.GetUser_Res],
+    response_model_exclude_none=True    
+)
+async def get_users(queries: Annotated[api_schemas.SharedQueriesForGetManyRequests, Query()], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+    try: 
+        if Authorization is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        authorized_list=[
+            auth_utils.create_authorized_item(users_schemas.RoleEnum.Analytics, "read"),
+            auth_utils.create_authorized_item(users_schemas.RoleEnum.DBA, "read"),
+            auth_utils.create_authorized_item(users_schemas.RoleEnum.Management, "read"),
+        ]
+
+        _, verified = auth_utils.verify_jwt(authorization_header=Authorization, authorized_list=authorized_list, op="read")
+        if verified is False:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        stmt = select(UserModel, func.count().over().label('total')).offset(queries.offset).limit(queries.limit)
+
+        resp  = await db.execute(stmt)
+        rows = resp.all()
+
+        total_count: int | Literal[0] = rows[0].total if rows else 0 
+        users =  [users_schemas.DescriptiveSchema.model_validate(row[0], from_attributes=True) for row in list(rows)]
+
+        return api_schemas.GetAll_Res[users_schemas.DescriptiveSchema](data=users, total_count=total_count, limit=queries.limit, offset=queries.offset)
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error("Error when getting users", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
+
+
+@router.get(
+    "/users/me",
+    status_code=status.HTTP_201_CREATED,
+    response_model=component_schemas.GetUser_Res,
+    response_model_exclude_none=True    
+)
+async def get_current_user(db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+    try: 
+        if Authorization is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        authorized_list=[
+            auth_utils.create_authorized_item(users_schemas.RoleEnum.Normal, "read"),
+        ]
+
+        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization, authorized_list=authorized_list, op="read")
+        if verified is False or payload is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        user = payload["user"] # getting user data from payload
+
+
+        stmt = select(UserModel).where(UserModel.id == user["id"])
+
+        resp  = await db.scalars(stmt)
+        existing_user = resp.unique().one()
+
+        return existing_user
+
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not found!")
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error("Error when getting user", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
+
+@router.get(
+    "/users/{id}",
+    status_code=status.HTTP_201_CREATED,
+    response_model=component_schemas.GetUser_Res,
+    response_model_exclude_none=True    
+)
+async def get_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+    try: 
+        if Authorization is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        authorized_list=[
+            auth_utils.create_authorized_item(users_schemas.RoleEnum.Management, "read"),
+            auth_utils.create_authorized_item(users_schemas.RoleEnum.DBA, "read"),
+            auth_utils.create_authorized_item(users_schemas.RoleEnum.Analytics, "read"),
+        ]
+
+        _, verified = auth_utils.verify_jwt(authorization_header=Authorization, authorized_list=authorized_list, op="read")
+        if verified is False:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+
+        stmt = select(UserModel).where(UserModel.id == id)
+
+        resp  = await db.scalars(stmt)
+        existing_user = resp.unique().one()
+
+        return existing_user
+
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not found!")
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error("Error when getting user", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
+
 @router.post(
     "/users/signup",
     status_code=status.HTTP_201_CREATED,

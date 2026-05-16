@@ -4,6 +4,9 @@ from typing import Annotated
 ###
 from adeeb_fastapi.schemas import users, general, api
 
+class GetUser_Res(users.DescriptiveSchema):
+    pass
+
 class UserSignup_Req(BaseModel):
     username: users.UsernameField
     password: users.PasswordField
