@@ -77,8 +77,8 @@ async def ping():
     return api_schemas.BaseRes(message="pong")
 
 ### Adding API routes
-app.include_router(users_router, prefix="/api")
-app.include_router(adeebs_router, prefix="/api")
-app.include_router(poems_router, prefix="/api")
-app.include_router(chosen_verses_router, prefix="/api")
-app.include_router(prose_qoutes_router, prefix="/api")
+app.include_router(users_router, prefix="/api/v1")
+app.include_router(adeebs_router, prefix="/api/v1")
+app.include_router(poems_router, prefix="/api/v1")
+app.include_router(chosen_verses_router, prefix="/api/v1")
+app.include_router(prose_qoutes_router, prefix="/api/v1")
