@@ -303,3 +303,78 @@ async def update_user_by_id(id: UUID, new_data: component_schemas.UpdateUserById
         logger.error("Update User Error", err=e)
         detail_msg = "An error occurred while updating the user, try again later."
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
+
+
+@router.delete(
+    "/users/me",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=api_schemas.Delete_Res,
+    response_model_exclude_none=True,
+)
+async def delete_current_user(db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+    try:
+        if Authorization is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        authorized_list=[
+            auth_utils.create_authorized_item(users_schemas.RoleEnum.Normal, "write"),
+        ]
+
+        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization, authorized_list=authorized_list, op="write")
+        if verified is False or payload is None :
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+        
+        user = payload["user"]
+        stmt = delete(UserModel).where(UserModel.id == user["id"])
+
+        _ = await db.execute(statement=stmt)
+        await db.commit()
+
+        return api_schemas.Delete_Res()
+    
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not found!")
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error("Delete User Error", err=e)
+        detail_msg = "An error occurred while deleting the user, try again later."
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
+
+@router.delete(
+    "/users/{id}",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=api_schemas.Delete_Res,
+    response_model_exclude_none=True,
+)
+async def delete_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+    try:
+        if Authorization is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        authorized_list=[
+            auth_utils.create_authorized_item(users_schemas.RoleEnum.Management, "write"),
+            auth_utils.create_authorized_item(users_schemas.RoleEnum.DBA, "write"),
+            auth_utils.create_authorized_item(users_schemas.RoleEnum.Analytics, "write"),
+        ]
+
+        _, verified = auth_utils.verify_jwt(authorization_header=Authorization, authorized_list=authorized_list, op="write")
+        if verified is False :
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+        
+        
+        stmt = delete(UserModel).where(UserModel.id == id)
+
+        _ = await db.execute(statement=stmt)
+        await db.commit()
+
+        return api_schemas.Delete_Res()
+    
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not found!")
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error("Delete User Error", err=e)
+        detail_msg = "An error occurred while deleting the user, try again later."
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
