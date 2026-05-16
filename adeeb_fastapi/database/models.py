@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from uuid import UUID
 ###
 from adeeb_fastapi.schemas.general import TimePeriodEnum
+from adeeb_fastapi.schemas.users import RoleEnum
 
 
 class Base(DeclarativeBase):
@@ -19,8 +20,17 @@ class Timestamps():
 
 
 # Enums
-time_period_enum = Enum('جاهلي', 'أموي', 'عباسي', 'أندلسي', 'عثماني ومملوكي', 'متأخر وحديث', 'غير محدد', name="time_period_enum")
+roles_enum = Enum(RoleEnum.Analytics, RoleEnum.Normal, RoleEnum.DBA, RoleEnum.Management, RoleEnum.BANNED, name="roles_enum")
+time_period_enum = Enum(TimePeriodEnum.JAHLI, TimePeriodEnum.AMOEI, TimePeriodEnum.ABASI, TimePeriodEnum.ANDALUSI, TimePeriodEnum.TURKISH_ERA, TimePeriodEnum.MODERN, TimePeriodEnum.UNDEFINED, name="time_period_enum")
 
+
+class User(Timestamps, Base):
+    __tablename__: str = "users"
+
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), server_default=text("gen_random_uuid()"), primary_key=True, nullable=False)
+    username: Mapped[str] = mapped_column(String(length=256), unique=True, nullable=False)
+    password: Mapped[str] = mapped_column(String(length=256), nullable=False)
+    roles: Mapped[list[RoleEnum]] = mapped_column(ARRAY(Enum(RoleEnum, name="roles_enum", native_enum=True)), nullable=False, default=[RoleEnum.Normal])
 
 
 class Adeeb(Timestamps, Base):
