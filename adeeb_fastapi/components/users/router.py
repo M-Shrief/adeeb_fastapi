@@ -196,3 +196,110 @@ async def login(user: component_schemas.UserLogin_Req, db: Annotated[AsyncSessio
         detail_msg = "An error occurred while loggin in, try again later."
         logger.error("Login Error", err=e)
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
+
+
+@router.put(
+    "/users/me",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=api_schemas.Update_Res,
+    response_model_exclude_none=True,
+)
+async def update_current_user(new_data: component_schemas.UpdateCurrentUser_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+    try:
+        if Authorization is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        authorized_list=[
+            auth_utils.create_authorized_item(users_schemas.RoleEnum.Normal, "write"),
+        ]
+
+        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization, authorized_list=authorized_list, op="write")
+        if verified is False or payload is None :
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+        
+        user = payload["user"]
+
+        stmt = select(UserModel).where(UserModel.id == user["id"]) 
+        res =  await db.execute(statement=stmt)
+        existing_user = res.scalar()
+
+        if existing_user: # User exist in DB
+
+            if new_data.username is not None:
+                existing_user.username = new_data.username
+
+            if new_data.password is not None:
+                hashed_password = auth_utils.hash_password(new_data.password)
+                existing_user.password = hashed_password
+
+            await db.commit()
+            return api_schemas.Update_Res()
+        else:
+            # User doesn't exist
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User doesn't exists")
+
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not found!")
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error("Update User Error", err=e)
+        detail_msg = "An error occurred while updating the user, try again later."
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
+
+@router.put(
+    "/users/{id}",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=api_schemas.Update_Res,
+    response_model_exclude_none=True,
+)
+async def update_user_by_id(id: UUID, new_data: component_schemas.UpdateUserById_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+    try:
+        if Authorization is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        authorized_list=[
+            auth_utils.create_authorized_item(users_schemas.RoleEnum.Management, "write"),
+            auth_utils.create_authorized_item(users_schemas.RoleEnum.DBA, "write"),
+            auth_utils.create_authorized_item(users_schemas.RoleEnum.Analytics, "write"),
+        ]
+
+        _, verified = auth_utils.verify_jwt(authorization_header=Authorization, authorized_list=authorized_list, op="write")
+        if verified is False :
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+        
+
+        stmt = select(UserModel).where(UserModel.id == id) 
+        res =  await db.execute(statement=stmt)
+        existing_user = res.scalar()
+
+        if existing_user: # User exist in DB
+
+            if new_data.username is not None:
+                existing_user.username = new_data.username
+
+            if new_data.password is not None:
+                hashed_password = auth_utils.hash_password(new_data.password)
+                existing_user.password = hashed_password
+
+            if new_data.roles is not None:
+                try: # Clean roles from duplicates, and ensure Normal role exists
+                    existing_user.roles = list(set(new_data.roles))
+                    _ = existing_user.roles.index(users_schemas.RoleEnum.Normal)
+                except ValueError:
+                    existing_user.roles.append(users_schemas.RoleEnum.Normal)
+
+            await db.commit()
+            return api_schemas.Update_Res()
+        else:
+            # User doesn't exist
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User doesn't exists")
+
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not found!")
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error("Update User Error", err=e)
+        detail_msg = "An error occurred while updating the user, try again later."
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
