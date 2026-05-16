@@ -109,9 +109,9 @@ def is_authorized(authorized_list: list[str], permissions: list[str], op: Litera
                 continue
     
     if is_banned:
-        return False
-    else:
-        return isAuthorized
+        isAuthorized= False
+
+    return isAuthorized
 
 def hash_password(password: str) -> str:
     hashed_password: bytes = bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12))
