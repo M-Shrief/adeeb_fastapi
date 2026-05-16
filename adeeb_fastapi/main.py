@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from adeeb_fastapi.database.index import async_engine
 from adeeb_fastapi.database.models import Base
 # Components
+from adeeb_fastapi.components.users.router import router as users_router
 from adeeb_fastapi.components.adeebs.router import router as adeebs_router
 from adeeb_fastapi.components.poems.router import router as poems_router
 from adeeb_fastapi.components.chosen_verses.router import router as chosen_verses_router
@@ -76,6 +77,7 @@ async def ping():
     return api_schemas.BaseRes(message="pong")
 
 ### Adding API routes
+app.include_router(users_router, prefix="/api")
 app.include_router(adeebs_router, prefix="/api")
 app.include_router(poems_router, prefix="/api")
 app.include_router(chosen_verses_router, prefix="/api")
