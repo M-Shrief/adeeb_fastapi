@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status
+from fastapi import FastAPI, status, Depends
 from scalar_fastapi import get_scalar_api_reference # pyright:ignore[reportUnknownVariableType]
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -14,7 +14,8 @@ from adeeb_fastapi.components.chosen_verses.router import router as chosen_verse
 from adeeb_fastapi.components.prose_qoutes.router import router as prose_qoutes_router
 # Schemas
 from adeeb_fastapi.schemas import api  as api_schemas
-
+# Utils
+from adeeb_fastapi.utils import rate_limiter
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -77,8 +78,42 @@ async def ping():
     return api_schemas.BaseRes(message="pong")
 
 ### Adding API routes
-app.include_router(users_router, prefix="/api/v1")
-app.include_router(adeebs_router, prefix="/api/v1")
-app.include_router(poems_router, prefix="/api/v1")
-app.include_router(chosen_verses_router, prefix="/api/v1")
-app.include_router(prose_qoutes_router, prefix="/api/v1")
+app.include_router(
+    router=users_router,
+    dependencies=[
+        Depends(rate_limiter.USERS_RATE_LIMIT)
+    ],
+    prefix="/api/v1"
+)
+
+app.include_router(
+    router=adeebs_router,
+    dependencies=[
+        Depends(rate_limiter.DEFAULT_RATE_LIMIT)
+    ],
+    prefix="/api/v1"
+)
+
+app.include_router(
+    router=poems_router, 
+        dependencies=[
+        Depends(rate_limiter.DEFAULT_RATE_LIMIT)
+    ],
+    prefix="/api/v1"
+)
+
+app.include_router(
+    router=chosen_verses_router,
+    dependencies=[
+        Depends(rate_limiter.DEFAULT_RATE_LIMIT)
+    ],
+    prefix="/api/v1"
+)
+
+app.include_router(
+    router=prose_qoutes_router,
+    dependencies=[
+        Depends(rate_limiter.DEFAULT_RATE_LIMIT)
+    ],
+    prefix="/api/v1"
+)
