@@ -2,6 +2,7 @@ from fastapi import FastAPI, status, Depends
 from scalar_fastapi import get_scalar_api_reference # pyright:ignore[reportUnknownVariableType]
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
 ###
 from adeeb_fastapi.database.index import async_engine
@@ -43,6 +44,11 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+app.add_middleware( # Enforces Host header to exist, and only allow requests form allowed_hosts
+    TrustedHostMiddleware, 
+    allowed_hosts=["*"] # to be modified to be like =["adeeb.com", "*.adeeb.com"]
 )
 
 app.add_middleware(
