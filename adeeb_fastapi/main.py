@@ -17,6 +17,7 @@ from adeeb_fastapi.components.prose_qoutes.router import router as prose_qoutes_
 from adeeb_fastapi.schemas import api  as api_schemas
 # Utils
 from adeeb_fastapi.utils import rate_limiter
+from adeeb_fastapi.utils.middlewares import SecurityHeadersMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -56,6 +57,10 @@ app.add_middleware(
     minimum_size=1000,
     compresslevel=5
 )
+
+app.add_middleware(SecurityHeadersMiddleware)   
+
+# non-component routes
 
 @app.get("/", status_code=status.HTTP_200_OK)
 async def homepage():    
