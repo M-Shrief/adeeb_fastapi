@@ -46,3 +46,8 @@ class CreateOneOrder_Res(GetOrder_Res):
     pass
 
 
+class CreateManyOrder_Res(BaseModel):
+    created_items: Annotated[list[CreateOneOrder_Res], Field(default=[])]
+    invalid_items: Annotated[list[api.InvalidDataFieldType[CreateOneOrder_Req]], Field(default=[])]
+    success_count: Annotated[int, Field(default=0)]
+
