@@ -45,8 +45,8 @@ def verify_jwt(authorization_header: str, authorized_list: list[str], op: Litera
 
 
 
-        isAuthorized= is_authorized(authorized_list=authorized_list, permissions=permissions, op=op)
-        if isAuthorized is False:
+        is_permitted= check_permission(authorized_list=authorized_list, permissions=permissions, op=op)
+        if is_permitted is False:
             return payload, False
 
 
@@ -89,7 +89,7 @@ def create_authorized_item(role: RoleEnum, op: Literal["read", "write"]):
     else:
         return role + READ_PERM
 
-def is_authorized(authorized_list: list[str], permissions: list[str], op: Literal["read", "write"]):
+def check_permission(authorized_list: list[str], permissions: list[str], op: Literal["read", "write"]):
     isAuthorized: bool = False
     is_banned = False
 
