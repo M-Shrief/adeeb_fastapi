@@ -249,6 +249,9 @@ async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, d
                 user = payload["user"]
                 if str(order.user_id) != user["id"]: 
                     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+                # If the user wants to update it, we need to check if the order is updateable first.
+                if order.is_updateable is False:
+                    raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
 
         db.add(new_print)
         await db.commit()
