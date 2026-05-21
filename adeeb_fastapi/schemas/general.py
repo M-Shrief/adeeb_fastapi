@@ -27,8 +27,12 @@ UpdatedAtField = Annotated[datetime, Field()]
 # Relations' fields
 AdeebIDField = Annotated[UUID, Field()]
 AdeebIDField_Optional = Annotated[UUID | None, Field(default=None)]
+
 PoemIDField = Annotated[UUID, Field()]
 PoemIDField_Optional = Annotated[UUID | None, Field(default=None)]
+
+
+UserIDField_Optional = Annotated[UUID | None, Field(default=None)]
 
 # Enums
 class TimePeriodEnum(str, Enum):
@@ -39,3 +43,12 @@ class TimePeriodEnum(str, Enum):
     ANDALUSI = "أندلسي"
     TURKISH_ERA = "عثماني ومملوكي"
     MODERN = "حديث"
+
+class OutfitTypeEnum(str, Enum):
+    TSHIRT_7 = "تيشيرت - لياقة 7"
+    TSHIRT_HALF = "تيشيرت - نص لياقة "
+    TSHIRT_POLO = "تشيرت - لياقة بولو"
+    JACKET = "جاكيت"
+    SWEETSHIRT = "سويت شيرت"
+    PULLOVER  = "بلوفر"
+
