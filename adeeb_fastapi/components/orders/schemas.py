@@ -62,3 +62,12 @@ class UpdateOrder_Req(BaseModel):
     delivery_schedule: orders.DeliveryScheduleField_Optional
     # Relations
     user_id: general.UserIDField_Optional
+
+class UpdatePrint_Req(BaseModel):
+    font_type: prints.FontTypeField_Optional
+    font_color: prints.FontColorField_Optional
+    outfit_color: prints.OutfitColorField_Optional
+    outfit_type: prints.OutfitTypeField_Optional
+    # We don't udpate Prints text or relations,
+    # if they don't want it they delete it as a whole, and add another print one with another text, relations...etc
+

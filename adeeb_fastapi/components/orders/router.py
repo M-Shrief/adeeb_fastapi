@@ -334,3 +334,60 @@ async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, db
     except Exception as e:
         logger.error("Error when updating order", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
+
+@router.put(
+    "/orders/{order_id}/prints/{print_id}",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=api_schemas.Update_Res,
+    response_model_exclude_none=True
+)
+async def update_print(order_id: UUID, print_id: UUID, req_body: component_schemas.UpdatePrint_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+    try:
+        if Authorization is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        authorized_list=[
+            auth_utils.create_authorized_item(RoleEnum.Analytics, "write"),
+            auth_utils.create_authorized_item(RoleEnum.DBA, "write"),
+            auth_utils.create_authorized_item(RoleEnum.Management, "write"),
+        ]
+        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization, authorized_list=authorized_list, op="write")
+
+        if payload is None: 
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+        
+        order_stmt = select(OrderModel).where(OrderModel.id == order_id)
+        res = await db.scalars(statement=order_stmt)
+        order = res.unique().one()
+
+        if verified is False: # if it's not admin
+            if order.user_id is None: # if there's no user_id, then it's not a registered user, so no need to compare ids
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            else:
+                # check if it's the same user, if no raise Authorization error
+                # if it's the same user, then we continue the request without raising errors
+                user = payload["user"]
+                if str(order.user_id) != user["id"]: 
+                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+                # If the user wants to update it, we need to check if the order is updateable first.
+                if order.is_updateable is False:
+                    raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
+
+        print_stmt = select(PrintModel).where(PrintModel.id == print_id)
+        res = await db.scalars(statement=print_stmt)
+        existing_print = res.unique().one()
+
+        new_print_data = req_body.model_dump(exclude_none=True)  # Exclude None fields from the request body
+        for key, value in new_print_data.items():
+            setattr(existing_print, key, value)
+
+        await db.commit()
+        return api_schemas.Update_Res()
+
+    except HTTPException as e:
+        raise e
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order is not found!")
+    except Exception as e:
+        logger.error("Error when updating order", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
