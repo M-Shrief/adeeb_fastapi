@@ -2,10 +2,11 @@ from os import posix_openpt
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship, validates
 from sqlalchemy import Table, Column, DateTime, Enum, ARRAY, String, text, SmallInteger, Boolean, ForeignKey
 from datetime import datetime
+# from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from uuid import UUID
 ###
-from adeeb_fastapi.schemas.general import TimePeriodEnum
+from adeeb_fastapi.schemas.general import TimePeriodEnum,  OutfitTypeEnum
 from adeeb_fastapi.schemas.users import RoleEnum
 
 
@@ -22,6 +23,7 @@ class Timestamps():
 # Enums
 roles_enum = Enum(RoleEnum.Analytics, RoleEnum.Normal, RoleEnum.DBA, RoleEnum.Management, RoleEnum.BANNED, name="roles_enum")
 time_period_enum = Enum(TimePeriodEnum.JAHLI, TimePeriodEnum.AMOEI, TimePeriodEnum.ABASI, TimePeriodEnum.ANDALUSI, TimePeriodEnum.TURKISH_ERA, TimePeriodEnum.MODERN, TimePeriodEnum.UNDEFINED, name="time_period_enum")
+outfit_type_enum = Enum(OutfitTypeEnum.TSHIRT_7, OutfitTypeEnum.TSHIRT_HALF, OutfitTypeEnum.TSHIRT_POLO,OutfitTypeEnum.SWEETSHIRT, OutfitTypeEnum.JACKET, OutfitTypeEnum.PULLOVER, name="outfit_type_enum")
 
 
 class User(Timestamps, Base):
@@ -31,6 +33,8 @@ class User(Timestamps, Base):
     username: Mapped[str] = mapped_column(String(length=256), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(length=256), nullable=False)
     roles: Mapped[list[RoleEnum]] = mapped_column(ARRAY(Enum(RoleEnum, name="roles_enum", native_enum=True)), nullable=False, default=[RoleEnum.Normal])
+
+    orders: Mapped[list[Order]] = relationship(back_populates="user")
 
 
 class Adeeb(Timestamps, Base):
@@ -96,3 +100,50 @@ class ProseQoute(Timestamps, Base):
     adeeb_id: Mapped[UUID] = mapped_column(ForeignKey("adeebs.id"), nullable=False)
     adeeb: Mapped[Adeeb] = relationship(back_populates="prose_qoutes")
 
+class Order(Timestamps, Base):
+    __tablename__: str = "orders"
+
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), server_default=text("gen_random_uuid()"), primary_key=True, nullable=False)
+
+    name: Mapped[str] = mapped_column(String(length=128), nullable=False)
+    phone: Mapped[str] = mapped_column(String(length=128), nullable=False)
+    address: Mapped[str] = mapped_column(String(length=256), nullable=False)
+
+    reviewed: Mapped[bool] = mapped_column(Boolean(), default=False)
+    delivery_schedule: Mapped[datetime | None] = mapped_column(DateTime(), nullable=True, default=None)
+    is_updateable: Mapped[bool] = mapped_column(Boolean(), default=True)
+    is_aborted: Mapped[bool] = mapped_column(Boolean(), default=False)
+    is_completed: Mapped[bool] = mapped_column(Boolean(), default=False)
+
+    ### Relationships
+    user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True, default=None)
+    user: Mapped[User] = relationship(back_populates="orders")
+
+    prints: Mapped[list[Print]] = relationship(back_populates="order")
+
+class Print(Base):
+    __tablename__: str = "prints"
+
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), server_default=text("gen_random_uuid()"), primary_key=True, nullable=False)
+
+    font_type: Mapped[str] = mapped_column(String(length=64), nullable=False)
+    font_color: Mapped[str] = mapped_column(String(length=64), nullable=False)
+    outfit_color: Mapped[str] = mapped_column(String(length=64), nullable=False)
+    outfit_type: Mapped[OutfitTypeEnum] = mapped_column(Enum(OutfitTypeEnum, name="outfit_type_enum", native_enum=True), nullable=False)
+
+    # Foreign ids to know from where did the customer chose his print, for analytics and such
+    poem_id: Mapped[UUID | None] = mapped_column(ForeignKey("poems.id"), nullable=True, default=None)
+    chosen_verse_id: Mapped[UUID | None] = mapped_column(ForeignKey("chosen_verses.id"), nullable=True, default=None)
+    prose_qoute_id: Mapped[UUID | None] = mapped_column(ForeignKey("prose_qoutes.id"), nullable=True, default=None)
+
+    # Print's Text    
+    qoute: Mapped[str | None] = mapped_column(String(length=512), nullable=True, default=None)
+    verses: Mapped[list[str] | None] = mapped_column(ARRAY(String(length=256)), nullable=True, default=None)
+    is_couplet: Mapped[bool | None] = mapped_column(Boolean(), nullable=True, default=None)
+
+    ### Relationships
+    order_id: Mapped[UUID] = mapped_column(ForeignKey("orders.id"), nullable=False)
+    order: Mapped[Order] = relationship(back_populates="prints")
+
+    user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True, default=None)
+    user: Mapped[User] = relationship()
