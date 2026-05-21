@@ -9,6 +9,7 @@ from adeeb_fastapi.database.index import async_engine
 from adeeb_fastapi.database.models import Base
 # Components
 from adeeb_fastapi.components.users.router import router as users_router
+from adeeb_fastapi.components.orders.router import router as orders_router
 from adeeb_fastapi.components.adeebs.router import router as adeebs_router
 from adeeb_fastapi.components.poems.router import router as poems_router
 from adeeb_fastapi.components.chosen_verses.router import router as chosen_verses_router
@@ -96,6 +97,14 @@ app.include_router(
     router=users_router,
     dependencies=[
         Depends(rate_limiter.USERS_RATE_LIMIT)
+    ],
+    prefix="/api/v1"
+)
+
+app.include_router(
+    router=orders_router,
+    dependencies=[
+        Depends(rate_limiter.DEFAULT_RATE_LIMIT)
     ],
     prefix="/api/v1"
 )

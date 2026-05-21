@@ -18,7 +18,7 @@ db_url = URL.create(
 
 async_engine: AsyncEngine = create_async_engine(db_url)
 
-AsyncSessionLocal: async_sessionmaker[AsyncSession] = async_sessionmaker(autocommit=False, autoflush=False, bind=async_engine)
+AsyncSessionLocal: async_sessionmaker[AsyncSession] = async_sessionmaker(autocommit=False, autoflush=False, expire_on_commit=False, bind=async_engine)
 
 # FastAPI's dependency with yield: https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-with-yield/
 async def get_async_db() -> AsyncGenerator[AsyncSession, Any]:
