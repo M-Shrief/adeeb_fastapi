@@ -211,3 +211,54 @@ async def create_orders(data: list[component_schemas.CreateOneOrder_Req], db: An
     except Exception as e:
         detail_msg = "An error occurred while creating many order entities, try again later."
         raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
+
+@router.post(
+    "/orders/{order_id}/prints/",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=component_schemas.PrintItem_Res,
+    response_model_exclude_none=True
+)
+async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+    try:
+        if Authorization is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        
+        stmt = select(OrderModel).where(OrderModel.id == order_id)
+        res = await db.scalars(statement=stmt)
+        order = res.unique().one()
+
+        new_print = PrintModel(**req_body.model_dump(), order_id=order.id, user_id=order.user_id)
+
+        authorized_list=[
+            auth_utils.create_authorized_item(RoleEnum.Analytics, "write"),
+            auth_utils.create_authorized_item(RoleEnum.DBA, "write"),
+            auth_utils.create_authorized_item(RoleEnum.Management, "write"),
+        ]
+        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization, authorized_list=authorized_list, op="write")
+
+        if payload is None: 
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+        
+        if verified is False: # if it's not admin
+            if order.user_id is None: # if there's no user_id, then it's not a registered user, so no need to compare ids
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            else:
+                # check if it's the same user, if no raise Authorization error
+                # if it's the same user, then we continue the request without raising errors
+                user = payload["user"]
+                if str(order.user_id) != user["id"]: 
+                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        db.add(new_print)
+        await db.commit()
+        await db.refresh(new_print)
+        return new_print
+
+    except HTTPException as e:
+        raise e
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="order is not found!")
+    except Exception as e:
+        logger.error("Error when getting a order by id", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
