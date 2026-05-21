@@ -51,3 +51,14 @@ class CreateManyOrder_Res(BaseModel):
     invalid_items: Annotated[list[api.InvalidDataFieldType[CreateOneOrder_Req]], Field(default=[])]
     success_count: Annotated[int, Field(default=0)]
 
+class UpdateOrder_Req(BaseModel):
+    name: orders.NameField_Optional
+    phone: orders.PhoneField_Optional
+    address: orders.AddressField_Optional
+    reviewed: general.ReviewedField_Optional
+    is_updateable: orders.IsUpdateableField_Optional
+    is_aborted: orders.IsAbortedField_Optional
+    is_completed: orders.IsCompletedField_Optional
+    delivery_schedule: orders.DeliveryScheduleField_Optional
+    # Relations
+    user_id: general.UserIDField_Optional

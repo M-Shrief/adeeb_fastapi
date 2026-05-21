@@ -262,3 +262,75 @@ async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, d
     except Exception as e:
         logger.error("Error when getting a order by id", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
+
+@router.put(
+    "/orders/{id}",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=api_schemas.Update_Res,
+    response_model_exclude_none=True
+)
+async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+    try:
+        if Authorization is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        authorized_list=[
+            auth_utils.create_authorized_item(RoleEnum.Analytics, "write"),
+            auth_utils.create_authorized_item(RoleEnum.DBA, "write"),
+            auth_utils.create_authorized_item(RoleEnum.Management, "write"),
+        ]
+        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization, authorized_list=authorized_list, op="write")
+
+        if payload is None: 
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        stmt = select(OrderModel).where(OrderModel.id == id)
+        res = await db.scalars(statement=stmt)    
+        existing_order = res.unique().one()
+
+        if verified is False: # if it's not admin
+            if existing_order.user_id is None: # if there's no user_id, then it's not a registered user, so no need to compare ids
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            else:
+                # check if it's the same user, if no raise Authorization error
+                # if it's the same user, then we continue the request without raising errors
+                user = payload["user"]
+                if str(existing_order.user_id) != user["id"]: 
+                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+                # If the user wants to update it, we need to check if the order is updateable first.
+                if existing_order.is_updateable is False:
+                    raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
+                # Make sure the user can't update interanl values like: is_updateable, is_completed
+                # we assign them to None, as we can exclude them later with model_dump(exclude_none=True)
+                else: 
+                    req_body.is_updateable = None
+                    req_body.is_completed = None
+
+        # Ensuring Data Integrity
+        ## request can't updated is_aborted & is_completed to be True, it's one or the other
+        if req_body.is_aborted and req_body.is_completed:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="request can't updated is_aborted & is_completed to be True, it's one or the other")
+        ## If the order is aborted or marked as completed, then we make sure that is_updateable is False
+        elif req_body.is_aborted or req_body.is_completed:
+            req_body.is_updateable = False
+        ## if it want to make is_updateable true, then we make user is_aborted & is_completed are false.
+        ## We don't need to worry about the user setting it to true, as we raise Auth error if it's false above
+        elif req_body.is_updateable:
+            req_body.is_aborted = False
+            req_body.is_completed = False
+
+        new_order_data = req_body.model_dump(exclude_none=True)  # Exclude None fields from the request body
+
+        for key, value in new_order_data.items():
+            setattr(existing_order, key, value)
+
+        await db.commit()
+        return api_schemas.Update_Res()
+
+    except HTTPException as e:
+        raise e
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order is not found!")
+    except Exception as e:
+        logger.error("Error when updating order", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
