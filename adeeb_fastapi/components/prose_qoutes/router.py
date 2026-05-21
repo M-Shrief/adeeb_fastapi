@@ -28,7 +28,7 @@ async def get_prose_qoutes(queries: Annotated[api_schemas.SharedQueriesForGetMan
         resp  = await db.execute(stmt)
         rows = resp.all()
 
-        total_count: int | Literal[0] = rows[1].total if rows else 0 
+        total_count: int | Literal[0] = rows[0].total if rows else 0 
         prose_qoutes =  [prose_qoutes_schemas.DescriptiveSchema.model_validate(row[0], from_attributes=True) for row in list(rows)]
 
         return api_schemas.GetAll_Res[prose_qoutes_schemas.DescriptiveSchema](data=prose_qoutes, total_count=total_count, limit=queries.limit, offset=queries.offset)

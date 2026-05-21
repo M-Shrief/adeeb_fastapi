@@ -28,7 +28,7 @@ async def get_chosen_verses(queries: Annotated[api_schemas.SharedQueriesForGetMa
         resp  = await db.execute(stmt)
         rows = resp.all()
 
-        total_count: int | Literal[0] = rows[1].total if rows else 0 
+        total_count: int | Literal[0] = rows[0].total if rows else 0 
         chosen_verses =  [chosen_verses_schemas.DescriptiveSchema.model_validate(row[0], from_attributes=True) for row in list(rows)]
 
         return api_schemas.GetAll_Res[chosen_verses_schemas.DescriptiveSchema](data=chosen_verses, total_count=total_count, limit=queries.limit, offset=queries.offset)

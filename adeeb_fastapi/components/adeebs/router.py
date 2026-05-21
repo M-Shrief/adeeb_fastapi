@@ -28,7 +28,7 @@ async def get_adeebs(queries: Annotated[api_schemas.SharedQueriesForGetManyReque
         resp  = await db.execute(stmt)
         rows = resp.all()
 
-        total_count: int | Literal[0] = rows[1].total if rows else 0 # note: using 0 or 1 is the same, as count().over()...etc returns total_count with every row
+        total_count: int | Literal[0] = rows[0].total if rows else 0
         # We can get the data by: data = [row[0] for row in rows], 
         # but we merge fetching the data & validation in the same step.
         adeebs =  [adeeb_schemas.DescriptiveSchema.model_validate(row[0], from_attributes=True) for row in list(rows)]
