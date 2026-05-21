@@ -10,11 +10,8 @@ route():
     ...
 """
 
-from adeeb_fastapi.database.models import Adeeb as AdeebModel, Poem as PoemModel, ChosenVerses as ChosenVersesModel, ProseQoute as ProseQouteModel
-from sqlalchemy.orm import joinedload, load_only
-
-#options(joinedload(CategoryModel.owners)).options(joinedload(CategoryModel.main_oss).load_only(OSSModel.id, OSSModel.fullname, OSSModel.priority, OSSModel.is_mirrored))
-
+from adeeb_fastapi.database.models import Adeeb as AdeebModel, Poem as PoemModel, ChosenVerses as ChosenVersesModel, ProseQoute as ProseQouteModel, Order as OrderModel, Print as PrintModel
+from sqlalchemy.orm import joinedload
 
 
 adeebs_to_poems = joinedload(PoemModel.adeeb).load_only(AdeebModel.id, AdeebModel.name)
@@ -29,3 +26,7 @@ chosen_verses_to_adeeb = joinedload(AdeebModel.chosen_verses).load_only(ChosenVe
 
 prose_qoutes_to_adeeb = joinedload(AdeebModel.prose_qoutes).load_only(ProseQouteModel.id, ProseQouteModel.qoute)
 
+order_to_print = joinedload(PrintModel.order).load_only(OrderModel.id, OrderModel.name, OrderModel.user_id, OrderModel.delivery_schedule, OrderModel.is_updateable)
+
+# Here we get the Fullschema
+prints_to_order = joinedload(OrderModel.prints)#.load_only(PrintModel.id)
