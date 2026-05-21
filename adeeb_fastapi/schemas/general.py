@@ -31,8 +31,14 @@ AdeebIDField_Optional = Annotated[UUID | None, Field(default=None)]
 PoemIDField = Annotated[UUID, Field()]
 PoemIDField_Optional = Annotated[UUID | None, Field(default=None)]
 
+ChosenVerseIDField_Optional = Annotated[UUID | None, Field(default=None)]
+
+ProseQouteIDField_Optional = Annotated[UUID | None, Field(default=None)]
 
 UserIDField_Optional = Annotated[UUID | None, Field(default=None)]
+
+OrderIDField = Annotated[UUID, Field()]
+OrderIDField_Optional = Annotated[UUID | None, Field(default=None)]
 
 # Enums
 class TimePeriodEnum(str, Enum):
