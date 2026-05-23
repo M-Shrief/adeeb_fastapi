@@ -1,6 +1,7 @@
 from pydantic import Field, BaseModel
 from typing import Annotated
 from datetime import datetime
+from enum import Enum
 ### 
 from adeeb_fastapi.schemas import general
 
@@ -16,15 +17,14 @@ AddressField_Optional = Annotated[str | None, Field(default=None, max_length=256
 IsUpdateableField = Annotated[bool, Field(default=False)]
 IsUpdateableField_Optional= Annotated[bool | None, Field(default=None)]
 
-IsAbortedField = Annotated[bool, Field(default=False)]
-IsAbortedField_Optional= Annotated[bool | None, Field(default=None)]
-
-IsCompletedField = Annotated[bool, Field(default=False)]
-IsCompletedField_Optional= Annotated[bool | None, Field(default=None)]
-
 DeliveryScheduleField_Optional=   Annotated[datetime | None, Field(default=None, examples=["2026-05-30"])]
+class OrderStatusEnum(str, Enum):
+    IN_PROGRESS = "in progress"
+    ABORTED = "aborted"
+    COMPLETED = "completed"
 
-
+StatusField = Annotated[OrderStatusEnum, Field(default=OrderStatusEnum.IN_PROGRESS)]
+StatusField_Optional = Annotated[OrderStatusEnum | None, Field(default=None)]
 class FullSchema(BaseModel):
     id: general.IDField
     name: NameField
@@ -32,8 +32,7 @@ class FullSchema(BaseModel):
     address: AddressField
     reviewed: general.ReviewedField
     is_updateable: IsUpdateableField
-    is_aborted: IsAbortedField
-    is_completed: IsCompletedField
+    status: StatusField
     delivery_schedule: DeliveryScheduleField_Optional
     created_at: general.CreatedAtField
     updated_at: general.UpdatedAtField
@@ -46,6 +45,7 @@ class DescriptiveSchema(BaseModel):
     phone: PhoneField
     address: AddressField
     is_updateable: IsUpdateableField
+    status: StatusField
     delivery_schedule: DeliveryScheduleField_Optional
     # Relations
     user_id: general.UserIDField_Optional
@@ -53,6 +53,6 @@ class DescriptiveSchema(BaseModel):
 class MinimalSchema(BaseModel):
     id: general.IDField
     name: NameField
-    delivery_schedule: DeliveryScheduleField_Optional
+    status: StatusField
     # Relations
     user_id: general.UserIDField_Optional

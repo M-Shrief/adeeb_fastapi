@@ -1,6 +1,5 @@
-from os import posix_openpt
-from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship, validates
-from sqlalchemy import Table, Column, DateTime, Enum, ARRAY, String, text, SmallInteger, Boolean, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
+from sqlalchemy import DateTime, Enum, ARRAY, String, text, Boolean, ForeignKey
 from datetime import datetime
 # from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
@@ -8,6 +7,7 @@ from uuid import UUID
 ###
 from adeeb_fastapi.schemas.general import TimePeriodEnum,  OutfitTypeEnum
 from adeeb_fastapi.schemas.users import RoleEnum
+from adeeb_fastapi.schemas.orders import OrderStatusEnum
 
 
 class Base(DeclarativeBase):
@@ -24,7 +24,7 @@ class Timestamps():
 roles_enum = Enum(RoleEnum.Analytics, RoleEnum.Normal, RoleEnum.DBA, RoleEnum.Management, RoleEnum.BANNED, name="roles_enum")
 time_period_enum = Enum(TimePeriodEnum.JAHLI, TimePeriodEnum.AMOEI, TimePeriodEnum.ABASI, TimePeriodEnum.ANDALUSI, TimePeriodEnum.TURKISH_ERA, TimePeriodEnum.MODERN, TimePeriodEnum.UNDEFINED, name="time_period_enum")
 outfit_type_enum = Enum(OutfitTypeEnum.TSHIRT_7, OutfitTypeEnum.TSHIRT_HALF, OutfitTypeEnum.TSHIRT_POLO,OutfitTypeEnum.SWEETSHIRT, OutfitTypeEnum.JACKET, OutfitTypeEnum.PULLOVER, name="outfit_type_enum")
-
+order_status_enum = Enum(OrderStatusEnum.IN_PROGRESS, OrderStatusEnum.COMPLETED, OrderStatusEnum.ABORTED, name="order_status_enum")
 
 class User(Timestamps, Base):
     __tablename__: str = "users"
@@ -112,8 +112,8 @@ class Order(Timestamps, Base):
     reviewed: Mapped[bool] = mapped_column(Boolean(), default=False)
     delivery_schedule: Mapped[datetime | None] = mapped_column(DateTime(), nullable=True, default=None)
     is_updateable: Mapped[bool] = mapped_column(Boolean(), default=True)
-    is_aborted: Mapped[bool] = mapped_column(Boolean(), default=False)
-    is_completed: Mapped[bool] = mapped_column(Boolean(), default=False)
+    # delete this fields, and replace them with status as ENUM("In progress", "Aborted", "Completed")
+    status: Mapped[OrderStatusEnum] = mapped_column(Enum(OrderStatusEnum, name="order_status_enum", native_enum=True), nullable=False, default=OrderStatusEnum.IN_PROGRESS)
 
     ### Relationships
     user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True, default=None)
