@@ -45,6 +45,7 @@ class DescriptiveSchema(BaseModel):
     name: NameField
     phone: PhoneField
     address: AddressField
+    is_updateable: IsUpdateableField
     delivery_schedule: DeliveryScheduleField_Optional
     # Relations
     user_id: general.UserIDField_Optional
