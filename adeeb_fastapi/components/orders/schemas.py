@@ -57,8 +57,7 @@ class UpdateOrder_Req(BaseModel):
     address: orders.AddressField_Optional
     reviewed: general.ReviewedField_Optional
     is_updateable: orders.IsUpdateableField_Optional
-    is_aborted: orders.IsAbortedField_Optional
-    is_completed: orders.IsCompletedField_Optional
+    status: orders.StatusField_Optional
     delivery_schedule: orders.DeliveryScheduleField_Optional
     # Relations
     user_id: general.UserIDField_Optional

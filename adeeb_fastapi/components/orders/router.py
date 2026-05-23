@@ -11,6 +11,7 @@ from adeeb_fastapi.database.models import Order as OrderModel, Print as PrintMod
 from adeeb_fastapi.database import joins
 from adeeb_fastapi.schemas import api as api_schemas
 from adeeb_fastapi.schemas.users import RoleEnum
+from adeeb_fastapi.schemas.orders import OrderStatusEnum
 from adeeb_fastapi.components.orders import schemas as component_schemas
 from adeeb_fastapi.components.orders.shared import check_adminstration, check_order_ownership
 
@@ -112,8 +113,7 @@ async def create_order(order_data: component_schemas.CreateOneOrder_Req, db: Ann
             reviewed=False,
             # delivery_schedule=order_data.delivery_schedule,
             is_updateable=True,
-            is_aborted=False,
-            is_completed=False,
+            status=OrderStatusEnum.IN_PROGRESS,
             user_id=order_data.user_id,
             prints=[] # early populate to prevent lazy-loading
         )
@@ -162,8 +162,7 @@ async def create_orders(data: list[component_schemas.CreateOneOrder_Req], db: An
                     reviewed=False,
                     # delivery_schedule=item.delivery_schedule,
                     is_updateable=True,
-                    is_aborted=False,
-                    is_completed=False,
+                    status=OrderStatusEnum.IN_PROGRESS,
                     user_id=item.user_id,
                     prints=[] # early populate to prevent lazy-loading
                 )
@@ -298,20 +297,16 @@ async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, db
             # we assign them to None, as we can exclude them later with model_dump(exclude_none=True)
             else: 
                 req_body.is_updateable = None
-                req_body.is_completed = None
+                req_body.status = None
 
         # Ensuring Data Integrity
-        ## request can't updated is_aborted & is_completed to be True, it's one or the other
-        if req_body.is_aborted and req_body.is_completed:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="request can't updated is_aborted & is_completed to be True, it's one or the other")
         ## If the order is aborted or marked as completed, then we make sure that is_updateable is False
-        elif req_body.is_aborted or req_body.is_completed:
+        elif req_body.status in [OrderStatusEnum.ABORTED, OrderStatusEnum.COMPLETED]:
             req_body.is_updateable = False
-        ## if it want to make is_updateable true, then we make user is_aborted & is_completed are false.
-        ## We don't need to worry about the user setting it to true, as we raise Auth error if it's false above
+        ## if it want to make is_updateable true, then we make sure status == "in progress".
+        ## We don't need to worry about the user setting is_updateable to true, as we raise Auth error if it's false above
         elif req_body.is_updateable:
-            req_body.is_aborted = False
-            req_body.is_completed = False
+            req_body.status = OrderStatusEnum.IN_PROGRESS
 
         new_order_data = req_body.model_dump(exclude_none=True)  # Exclude None fields from the request body
 
