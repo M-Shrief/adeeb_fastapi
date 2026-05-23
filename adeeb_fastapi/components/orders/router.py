@@ -235,16 +235,10 @@ async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, d
 
         is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
         if is_administrator is False: # if it's not admin
-            if order.user_id is None: # if there's no user_id, then it's not a registered user, so no need to compare ids
+            is_owner = check_order_ownership(order, payload)
+            if is_owner is False:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
-            else:
-                # check if it's the same user, if no raise Authorization error
-                # if it's the same user, then we continue the request without raising errors
-                user = payload["user"]
-                if str(order.user_id) != user["id"]: 
-                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
-                # If the user wants to update it, we need to check if the order is updateable first.
-                if order.is_updateable is False:
+            if order.is_updateable is False:
                     raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
 
         new_print = PrintModel(**req_body.model_dump(), order_id=order.id, user_id=order.user_id)
@@ -294,22 +288,17 @@ async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, db
 
         is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
         if is_administrator is False: # if it's not admin
-            if existing_order.user_id is None: # if there's no user_id, then it's not a registered user, so no need to compare ids
+            is_owner = check_order_ownership(existing_order, payload)
+            if is_owner is False:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
-            else:
-                # check if it's the same user, if no raise Authorization error
-                # if it's the same user, then we continue the request without raising errors
-                user = payload["user"]
-                if str(existing_order.user_id) != user["id"]: 
-                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
-                # If the user wants to update it, we need to check if the order is updateable first.
-                if existing_order.is_updateable is False:
-                    raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
-                # Make sure the user can't update interanl values like: is_updateable, is_completed
-                # we assign them to None, as we can exclude them later with model_dump(exclude_none=True)
-                else: 
-                    req_body.is_updateable = None
-                    req_body.is_completed = None
+
+            if existing_order.is_updateable is False:
+                raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
+            # Make sure the user can't update interanl values like: is_updateable, is_completed
+            # we assign them to None, as we can exclude them later with model_dump(exclude_none=True)
+            else: 
+                req_body.is_updateable = None
+                req_body.is_completed = None
 
         # Ensuring Data Integrity
         ## request can't updated is_aborted & is_completed to be True, it's one or the other
@@ -371,17 +360,12 @@ async def update_print(order_id: UUID, print_id: UUID, req_body: component_schem
 
         is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
         if is_administrator is False: # if it's not admin
-            if order.user_id is None: # if there's no user_id, then it's not a registered user, so no need to compare ids
+            is_owner = check_order_ownership(order, payload)
+            if is_owner is False:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
-            else:
-                # check if it's the same user, if no raise Authorization error
-                # if it's the same user, then we continue the request without raising errors
-                user = payload["user"]
-                if str(order.user_id) != user["id"]: 
-                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
-                # If the user wants to update it, we need to check if the order is updateable first.
-                if order.is_updateable is False:
-                    raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
+            # If the user wants to update it, we need to check if the order is updateable first.
+            if order.is_updateable is False:
+                raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
 
         print_stmt = select(PrintModel).where(PrintModel.id == print_id)
         res = await db.scalars(statement=print_stmt)
@@ -434,17 +418,11 @@ async def delete_order(id: UUID, db: Annotated[AsyncSession, Depends(get_async_d
 
         is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
         if is_administrator is False: # if it's not admin
-            if order.user_id is None: # if there's no user_id, then it's not a registered user, so no need to compare ids
+            is_owner = check_order_ownership(order, payload)
+            if is_owner is False:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
-            else:
-                # check if it's the same user, if no raise Authorization error
-                # if it's the same user, then we continue the request without raising errors
-                user = payload["user"]
-                if str(order.user_id) != user["id"]: 
-                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
-                # If the user wants to update it, we need to check if the order is updateable first.
-                if order.is_updateable is False:
-                    raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
+            if order.is_updateable is False:
+                raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
 
 
         print_stmt = delete(PrintModel).where(PrintModel.order_id == id)
@@ -498,17 +476,11 @@ async def delete_print(order_id: UUID, print_id: UUID,db: Annotated[AsyncSession
 
         is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
         if is_administrator is False: # if it's not admin
-            if order.user_id is None: # if there's no user_id, then it's not a registered user, so no need to compare ids
+            is_owner = check_order_ownership(order, payload)
+            if is_owner is False:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
-            else:
-                # check if it's the same user, if no raise Authorization error
-                # if it's the same user, then we continue the request without raising errors
-                user = payload["user"]
-                if str(order.user_id) != user["id"]: 
-                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
-                # If the user wants to update it, we need to check if the order is updateable first.
-                if order.is_updateable is False:
-                    raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
+            if order.is_updateable is False:
+                raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
 
         print_stmt = delete(PrintModel).where(PrintModel.id == print_id)
         _ = await db.execute(statement=print_stmt)
