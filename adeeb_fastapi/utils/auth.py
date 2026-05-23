@@ -18,7 +18,11 @@ def create_jwt(id: UUID, username: str, roles: list[RoleEnum])->str:
 
     return token
 
-def verify_jwt(authorization_header: str, authorized_list: list[str], op: Literal["read", "write"]):
+def verify_jwt(authorization_header: str):
+    """Verify JWT token with secret public key, also verifiy expirate date.
+    
+    Note: it doesn't validate permissions, as it'll give false negatives will be thought it's because of permissions but it's because token validity or expiration date.
+    """
     token = authorization_header[7:] # Removes: "Bearer "
     try:
         # Decode JWT token
@@ -37,18 +41,6 @@ def verify_jwt(authorization_header: str, authorized_list: list[str], op: Litera
         # if the expire date is smaller than the current time (i.e. has passed), then it's not authorized 
         if expire_timepstamp < current_timepstamp:
             return payload, False
-
-        # Check permissions
-        permissions: list[str] | None = payload.get("permissions")
-        if permissions is None:
-            return payload, False
-
-
-
-        is_permitted= check_permission(authorized_list=authorized_list, permissions=permissions, op=op)
-        if is_permitted is False:
-            return payload, False
-
 
         return payload, True
     except jwt.DecodeError:
