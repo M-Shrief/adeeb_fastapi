@@ -25,19 +25,19 @@ router = APIRouter(tags=["Orders"])
 async def get_orders(queries: Annotated[api_schemas.SharedQueriesForGetManyRequests, Query()], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
         
         payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
         if verified is False or  payload is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         permissions: list[str] | None = payload.get("permissions")
         if permissions is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         is_administrator = check_adminstration(permissions, "read")
         if is_administrator is False:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         stmt = select(OrderModel, func.count().over().label('total')).offset(queries.offset).limit(queries.limit)
         stmt = stmt.options(joins.prints_to_order)
@@ -65,15 +65,15 @@ async def get_orders(queries: Annotated[api_schemas.SharedQueriesForGetManyReque
 async def get_order_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
         if verified is False or  payload is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         permissions: list[str] | None = payload.get("permissions")
         if permissions is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         stmt = select(OrderModel).where(OrderModel.id == id)
         stmt = stmt.options(joins.prints_to_order)
@@ -84,7 +84,7 @@ async def get_order_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_asyn
         if is_administrator is False: # if it's not admin
             is_owner = check_order_ownership(order, payload)
             if is_owner is False:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+                raise auth_utils.AuthorizationError
 
         return order
 
@@ -213,15 +213,15 @@ async def create_orders(data: list[component_schemas.CreateOneOrder_Req], db: An
 async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
         if verified is False or  payload is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         permissions: list[str] | None = payload.get("permissions")
         if permissions is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         stmt = select(OrderModel).where(OrderModel.id == order_id)
         res = await db.scalars(statement=stmt)
@@ -237,7 +237,7 @@ async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, d
         if is_administrator is False: # if it's not admin
             is_owner = check_order_ownership(order, payload)
             if is_owner is False:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+                raise auth_utils.AuthorizationError
             if order.is_updateable is False:
                     raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
 
@@ -265,15 +265,15 @@ async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, d
 async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
         if verified is False or  payload is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         permissions: list[str] | None = payload.get("permissions")
         if permissions is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
 
         stmt = select(OrderModel).where(OrderModel.id == id)
@@ -290,7 +290,7 @@ async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, db
         if is_administrator is False: # if it's not admin
             is_owner = check_order_ownership(existing_order, payload)
             if is_owner is False:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+                raise auth_utils.AuthorizationError
 
             if existing_order.is_updateable is False:
                 raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
@@ -338,15 +338,15 @@ async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, db
 async def update_print(order_id: UUID, print_id: UUID, req_body: component_schemas.UpdatePrint_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
         if verified is False or  payload is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
         
         permissions: list[str] | None = payload.get("permissions")
         if permissions is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         order_stmt = select(OrderModel).where(OrderModel.id == order_id)
         res = await db.scalars(statement=order_stmt)
@@ -362,7 +362,7 @@ async def update_print(order_id: UUID, print_id: UUID, req_body: component_schem
         if is_administrator is False: # if it's not admin
             is_owner = check_order_ownership(order, payload)
             if is_owner is False:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+                raise auth_utils.AuthorizationError
             # If the user wants to update it, we need to check if the order is updateable first.
             if order.is_updateable is False:
                 raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
@@ -395,15 +395,15 @@ async def update_print(order_id: UUID, print_id: UUID, req_body: component_schem
 async def delete_order(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
         if verified is False or  payload is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         permissions: list[str] | None = payload.get("permissions")
         if permissions is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
 
         order_stmt = select(OrderModel).where(OrderModel.id == id)
@@ -420,7 +420,7 @@ async def delete_order(id: UUID, db: Annotated[AsyncSession, Depends(get_async_d
         if is_administrator is False: # if it's not admin
             is_owner = check_order_ownership(order, payload)
             if is_owner is False:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+                raise auth_utils.AuthorizationError
             if order.is_updateable is False:
                 raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
 
@@ -452,15 +452,15 @@ async def delete_order(id: UUID, db: Annotated[AsyncSession, Depends(get_async_d
 async def delete_print(order_id: UUID, print_id: UUID,db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
         if verified is False or  payload is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         permissions: list[str] | None = payload.get("permissions")
         if permissions is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
 
         order_stmt = select(OrderModel).where(OrderModel.id == order_id)
@@ -478,7 +478,7 @@ async def delete_print(order_id: UUID, print_id: UUID,db: Annotated[AsyncSession
         if is_administrator is False: # if it's not admin
             is_owner = check_order_ownership(order, payload)
             if is_owner is False:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+                raise auth_utils.AuthorizationError
             if order.is_updateable is False:
                 raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
 

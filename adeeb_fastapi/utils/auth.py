@@ -1,3 +1,4 @@
+from fastapi import HTTPException, status
 import bcrypt
 import jwt
 from uuid import UUID
@@ -7,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from adeeb_fastapi.config import JWTKeys
 from adeeb_fastapi.schemas.users import RoleEnum
 
+AuthorizationError = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
 
 def create_jwt(id: UUID, username: str, roles: list[RoleEnum])->str:
     payload = create_jwt_payload(id, username, roles)

@@ -23,15 +23,15 @@ router = APIRouter(tags=["Users"])
 async def get_users(queries: Annotated[api_schemas.SharedQueriesForGetManyRequests, Query()], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try: 
         if Authorization is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
         if verified is False or  payload is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         permissions: list[str] | None = payload.get("permissions")
         if permissions is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         authorized_list=[
             auth_utils.create_authorized_item(users_schemas.RoleEnum.Analytics, "read"),
@@ -41,7 +41,7 @@ async def get_users(queries: Annotated[api_schemas.SharedQueriesForGetManyReques
 
         is_administrator = auth_utils.check_permission(authorized_list, permissions, "read")
         if is_administrator is False:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         stmt = select(UserModel, func.count().over().label('total')).offset(queries.offset).limit(queries.limit)
 
@@ -69,16 +69,16 @@ async def get_users(queries: Annotated[api_schemas.SharedQueriesForGetManyReques
 async def get_current_user(db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try: 
         if Authorization is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
 
         payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
         if verified is False or payload is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         permissions: list[str] | None = payload.get("permissions")
         if permissions is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
             
         authorized_list=[
             auth_utils.create_authorized_item(users_schemas.RoleEnum.Normal, "read"),
@@ -86,7 +86,7 @@ async def get_current_user(db: Annotated[AsyncSession, Depends(get_async_db)], A
 
         is_permitted = auth_utils.check_permission(authorized_list, permissions, "read")
         if is_permitted is False:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
 
         user = payload["user"] # getting user data from payload
@@ -116,15 +116,15 @@ async def get_current_user(db: Annotated[AsyncSession, Depends(get_async_db)], A
 async def get_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try: 
         if Authorization is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
         if verified is False or  payload is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         permissions: list[str] | None = payload.get("permissions")
         if permissions is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         authorized_list=[
             auth_utils.create_authorized_item(users_schemas.RoleEnum.Management, "read"),
@@ -134,7 +134,7 @@ async def get_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async
 
         is_permitted = auth_utils.check_permission(authorized_list, permissions, "read")
         if is_permitted is False:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
 
         stmt = select(UserModel).where(UserModel.id == id)
@@ -233,15 +233,15 @@ async def login(user: component_schemas.UserLogin_Req, db: Annotated[AsyncSessio
 async def update_current_user(new_data: component_schemas.UpdateCurrentUser_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
         if verified is False or payload is None :
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         permissions: list[str] | None = payload.get("permissions")
         if permissions is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         authorized_list=[
             auth_utils.create_authorized_item(users_schemas.RoleEnum.Normal, "write"),
@@ -249,7 +249,7 @@ async def update_current_user(new_data: component_schemas.UpdateCurrentUser_Req,
 
         is_permitted = auth_utils.check_permission(authorized_list, permissions, "write")
         if is_permitted is False:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         user = payload["user"]
 
@@ -290,16 +290,16 @@ async def update_current_user(new_data: component_schemas.UpdateCurrentUser_Req,
 async def update_user_by_id(id: UUID, new_data: component_schemas.UpdateUserById_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
         if verified is False or  payload is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
         
 
         permissions: list[str] | None = payload.get("permissions")
         if permissions is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         authorized_list=[
             auth_utils.create_authorized_item(users_schemas.RoleEnum.Management, "write"),
@@ -309,7 +309,7 @@ async def update_user_by_id(id: UUID, new_data: component_schemas.UpdateUserById
 
         is_permitted = auth_utils.check_permission(authorized_list, permissions, "write")
         if is_permitted is False:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
 
         stmt = select(UserModel).where(UserModel.id == id) 
@@ -357,15 +357,15 @@ async def update_user_by_id(id: UUID, new_data: component_schemas.UpdateUserById
 async def delete_current_user(db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
         if verified is False or payload is None :
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         permissions: list[str] | None = payload.get("permissions")
         if permissions is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         authorized_list=[
             auth_utils.create_authorized_item(users_schemas.RoleEnum.Normal, "write"),
@@ -373,7 +373,7 @@ async def delete_current_user(db: Annotated[AsyncSession, Depends(get_async_db)]
 
         is_permitted = auth_utils.check_permission(authorized_list, permissions, "write")
         if is_permitted is False:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         user = payload["user"]
         stmt = delete(UserModel).where(UserModel.id == user["id"])
@@ -401,15 +401,15 @@ async def delete_current_user(db: Annotated[AsyncSession, Depends(get_async_db)]
 async def delete_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
         if verified is False or  payload is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         permissions: list[str] | None = payload.get("permissions")
         if permissions is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         authorized_list=[
             auth_utils.create_authorized_item(users_schemas.RoleEnum.Management, "write"),
@@ -419,7 +419,7 @@ async def delete_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_as
 
         is_permitted = auth_utils.check_permission(authorized_list, permissions, "write")
         if is_permitted is False:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+            raise auth_utils.AuthorizationError
 
         
         stmt = delete(UserModel).where(UserModel.id == id)
