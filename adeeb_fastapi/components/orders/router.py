@@ -301,8 +301,10 @@ async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, db
 
         # Ensuring Data Integrity
         ## If the order is aborted or marked as completed, then we make sure that is_updateable is False
-        elif req_body.status in [OrderStatusEnum.ABORTED, OrderStatusEnum.COMPLETED]:
+        if req_body.status in [OrderStatusEnum.ABORTED, OrderStatusEnum.COMPLETED]:
             req_body.is_updateable = False
+        elif req_body.status == OrderStatusEnum.IN_PROGRESS:
+            req_body.is_updateable = True
         ## if it want to make is_updateable true, then we make sure status == "in progress".
         ## We don't need to worry about the user setting is_updateable to true, as we raise Auth error if it's false above
         elif req_body.is_updateable:
