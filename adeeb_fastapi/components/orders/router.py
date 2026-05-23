@@ -32,13 +32,22 @@ async def get_orders(queries: Annotated[api_schemas.SharedQueriesForGetManyReque
         if Authorization is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
         
+        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
+        if verified is False or  payload is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        permissions: list[str] | None = payload.get("permissions")
+        if permissions is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
         authorized_list=[
             auth_utils.create_authorized_item(RoleEnum.Analytics, "read"),
             auth_utils.create_authorized_item(RoleEnum.DBA, "read"),
             auth_utils.create_authorized_item(RoleEnum.Management, "read"),
         ]
-        _, verified = auth_utils.verify_jwt(authorization_header=Authorization, authorized_list=authorized_list, op="read")
-        if verified is False:
+
+        is_permitted = auth_utils.check_permission(authorized_list, permissions, "read")
+        if is_permitted is False:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
 
         stmt = select(OrderModel, func.count().over().label('total')).offset(queries.offset).limit(queries.limit)
@@ -69,6 +78,14 @@ async def get_order_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_asyn
         if Authorization is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
 
+        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
+        if verified is False or  payload is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        permissions: list[str] | None = payload.get("permissions")
+        if permissions is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
         stmt = select(OrderModel).where(OrderModel.id == id)
         stmt = stmt.options(joins.prints_to_order)
         res = await db.scalars(statement=stmt)
@@ -79,11 +96,9 @@ async def get_order_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_asyn
             auth_utils.create_authorized_item(RoleEnum.DBA, "read"),
             auth_utils.create_authorized_item(RoleEnum.Management, "read"),
         ]
-        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization, authorized_list=authorized_list, op="read")
-        if payload is None: 
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
-        
-        if verified is False: # if it's not admin
+
+        is_administrator = auth_utils.check_permission(authorized_list, permissions, "read")
+        if is_administrator is False: # if it's not admin
             if order.user_id is None: # if there's no user_id, then it's not a registered user, so no need to compare ids
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
             else:
@@ -207,7 +222,6 @@ async def create_orders(data: list[component_schemas.CreateOneOrder_Req], db: An
             invalid_items=invalid_items
         )
 
-
     except Exception as e:
         detail_msg = "An error occurred while creating many order entities, try again later."
         raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
@@ -223,24 +237,26 @@ async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, d
         if Authorization is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
 
-        
+        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
+        if verified is False or  payload is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        permissions: list[str] | None = payload.get("permissions")
+        if permissions is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
         stmt = select(OrderModel).where(OrderModel.id == order_id)
         res = await db.scalars(statement=stmt)
         order = res.unique().one()
-
-        new_print = PrintModel(**req_body.model_dump(), order_id=order.id, user_id=order.user_id)
 
         authorized_list=[
             auth_utils.create_authorized_item(RoleEnum.Analytics, "write"),
             auth_utils.create_authorized_item(RoleEnum.DBA, "write"),
             auth_utils.create_authorized_item(RoleEnum.Management, "write"),
         ]
-        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization, authorized_list=authorized_list, op="write")
 
-        if payload is None: 
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
-        
-        if verified is False: # if it's not admin
+        is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
+        if is_administrator is False: # if it's not admin
             if order.user_id is None: # if there's no user_id, then it's not a registered user, so no need to compare ids
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
             else:
@@ -252,6 +268,8 @@ async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, d
                 # If the user wants to update it, we need to check if the order is updateable first.
                 if order.is_updateable is False:
                     raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
+
+        new_print = PrintModel(**req_body.model_dump(), order_id=order.id, user_id=order.user_id)
 
         db.add(new_print)
         await db.commit()
@@ -277,21 +295,27 @@ async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, db
         if Authorization is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
 
-        authorized_list=[
-            auth_utils.create_authorized_item(RoleEnum.Analytics, "write"),
-            auth_utils.create_authorized_item(RoleEnum.DBA, "write"),
-            auth_utils.create_authorized_item(RoleEnum.Management, "write"),
-        ]
-        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization, authorized_list=authorized_list, op="write")
-
-        if payload is None: 
+        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
+        if verified is False or  payload is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        permissions: list[str] | None = payload.get("permissions")
+        if permissions is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
 
         stmt = select(OrderModel).where(OrderModel.id == id)
         res = await db.scalars(statement=stmt)    
         existing_order = res.unique().one()
 
-        if verified is False: # if it's not admin
+        authorized_list=[
+            auth_utils.create_authorized_item(RoleEnum.Analytics, "write"),
+            auth_utils.create_authorized_item(RoleEnum.DBA, "write"),
+            auth_utils.create_authorized_item(RoleEnum.Management, "write"),
+        ]
+
+        is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
+        if is_administrator is False: # if it's not admin
             if existing_order.user_id is None: # if there's no user_id, then it's not a registered user, so no need to compare ids
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
             else:
@@ -349,21 +373,26 @@ async def update_print(order_id: UUID, print_id: UUID, req_body: component_schem
         if Authorization is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
 
+        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
+        if verified is False or  payload is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+        
+        permissions: list[str] | None = payload.get("permissions")
+        if permissions is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        order_stmt = select(OrderModel).where(OrderModel.id == order_id)
+        res = await db.scalars(statement=order_stmt)
+        order = res.unique().one()
+
         authorized_list=[
             auth_utils.create_authorized_item(RoleEnum.Analytics, "write"),
             auth_utils.create_authorized_item(RoleEnum.DBA, "write"),
             auth_utils.create_authorized_item(RoleEnum.Management, "write"),
         ]
-        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization, authorized_list=authorized_list, op="write")
 
-        if payload is None: 
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
-        
-        order_stmt = select(OrderModel).where(OrderModel.id == order_id)
-        res = await db.scalars(statement=order_stmt)
-        order = res.unique().one()
-
-        if verified is False: # if it's not admin
+        is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
+        if is_administrator is False: # if it's not admin
             if order.user_id is None: # if there's no user_id, then it's not a registered user, so no need to compare ids
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
             else:
@@ -406,14 +435,12 @@ async def delete_order(id: UUID, db: Annotated[AsyncSession, Depends(get_async_d
         if Authorization is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
 
-        authorized_list=[
-            auth_utils.create_authorized_item(RoleEnum.Analytics, "write"),
-            auth_utils.create_authorized_item(RoleEnum.DBA, "write"),
-            auth_utils.create_authorized_item(RoleEnum.Management, "write"),
-        ]
-        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization, authorized_list=authorized_list, op="write")
+        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
+        if verified is False or  payload is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
 
-        if payload is None:
+        permissions: list[str] | None = payload.get("permissions")
+        if permissions is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
 
 
@@ -421,7 +448,14 @@ async def delete_order(id: UUID, db: Annotated[AsyncSession, Depends(get_async_d
         res = await db.scalars(statement=order_stmt)
         order = res.unique().one()
 
-        if verified is False: # if it's not admin
+        authorized_list=[
+            auth_utils.create_authorized_item(RoleEnum.Analytics, "write"),
+            auth_utils.create_authorized_item(RoleEnum.DBA, "write"),
+            auth_utils.create_authorized_item(RoleEnum.Management, "write"),
+        ]
+
+        is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
+        if is_administrator is False: # if it's not admin
             if order.user_id is None: # if there's no user_id, then it's not a registered user, so no need to compare ids
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
             else:
@@ -464,7 +498,15 @@ async def delete_print(order_id: UUID, print_id: UUID,db: Annotated[AsyncSession
         if Authorization is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
 
-        
+        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
+        if verified is False or  payload is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+        permissions: list[str] | None = payload.get("permissions")
+        if permissions is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
+
+
         order_stmt = select(OrderModel).where(OrderModel.id == order_id)
         res = await db.scalars(statement=order_stmt)
         order = res.unique().one()
@@ -475,12 +517,9 @@ async def delete_print(order_id: UUID, print_id: UUID,db: Annotated[AsyncSession
             auth_utils.create_authorized_item(RoleEnum.DBA, "write"),
             auth_utils.create_authorized_item(RoleEnum.Management, "write"),
         ]
-        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization, authorized_list=authorized_list, op="write")
 
-        if payload is None: 
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
-        
-        if verified is False: # if it's not admin
+        is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
+        if is_administrator is False: # if it's not admin
             if order.user_id is None: # if there's no user_id, then it's not a registered user, so no need to compare ids
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
             else:
