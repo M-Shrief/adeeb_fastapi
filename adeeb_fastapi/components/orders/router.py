@@ -12,14 +12,9 @@ from adeeb_fastapi.database import joins
 from adeeb_fastapi.schemas import api as api_schemas
 from adeeb_fastapi.schemas.users import RoleEnum
 from adeeb_fastapi.components.orders import schemas as component_schemas
+from adeeb_fastapi.components.orders.shared import check_adminstration, check_order_ownership
 
 router = APIRouter(tags=["Orders"])
-
-
-# TODO: we make a function to handle Authorization,
-# maybe make it return: {is_admin: bool, is_owner: bool, is_valid: bool}
-# if is_valid=true one of the other is True, if it's false, both are false.
-# if is_admin is true, we accept's it, if it's owner then we make further validations...etc
 
 @router.get(
     "/orders",
@@ -40,14 +35,8 @@ async def get_orders(queries: Annotated[api_schemas.SharedQueriesForGetManyReque
         if permissions is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
 
-        authorized_list=[
-            auth_utils.create_authorized_item(RoleEnum.Analytics, "read"),
-            auth_utils.create_authorized_item(RoleEnum.DBA, "read"),
-            auth_utils.create_authorized_item(RoleEnum.Management, "read"),
-        ]
-
-        is_permitted = auth_utils.check_permission(authorized_list, permissions, "read")
-        if is_permitted is False:
+        is_administrator = check_adminstration(permissions, "read")
+        if is_administrator is False:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
 
         stmt = select(OrderModel, func.count().over().label('total')).offset(queries.offset).limit(queries.limit)
@@ -91,23 +80,12 @@ async def get_order_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_asyn
         res = await db.scalars(statement=stmt)
         order = res.unique().one()
 
-        authorized_list=[
-            auth_utils.create_authorized_item(RoleEnum.Analytics, "read"),
-            auth_utils.create_authorized_item(RoleEnum.DBA, "read"),
-            auth_utils.create_authorized_item(RoleEnum.Management, "read"),
-        ]
-
-        is_administrator = auth_utils.check_permission(authorized_list, permissions, "read")
+        is_administrator = check_adminstration(permissions, "read")
         if is_administrator is False: # if it's not admin
-            if order.user_id is None: # if there's no user_id, then it's not a registered user, so no need to compare ids
+            is_owner = check_order_ownership(order, payload)
+            if is_owner is False:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
-            else:
-                # check if it's the same user, if no raise Authorization error
-                # if it's the same user, then we continue the request without raising errors
-                user = payload["user"]
-                if str(order.user_id) != user["id"]: # check if it's the same user, if yes return order
-                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
- 
+
         return order
 
     except HTTPException as e:
