@@ -148,8 +148,15 @@ async def create_order(order_data: component_schemas.CreateOneOrder_Req, db: Ann
     response_model=component_schemas.CreateManyOrder_Res,
     response_model_exclude_none=True
 )
-async def create_orders(data: list[component_schemas.CreateOneOrder_Req], db: Annotated[AsyncSession, Depends(get_async_db)]):
+async def create_orders(data: list[component_schemas.CreateOneOrder_Req], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
+        if Authorization is None:
+            raise auth_utils.AuthorizationError
+        
+        _, verified = auth_utils.verify_jwt(authorization_header=Authorization)
+        if verified is False:
+            raise auth_utils.AuthorizationError
+
         created_items: list[component_schemas.CreateOneOrder_Res] = []
         invalid_items: list[api_schemas.InvalidDataFieldType[component_schemas.CreateOneOrder_Req]] = []
 
@@ -199,6 +206,8 @@ async def create_orders(data: list[component_schemas.CreateOneOrder_Req], db: An
             invalid_items=invalid_items
         )
 
+    except HTTPException as e:
+        raise e
     except Exception as e:
         detail_msg = "An error occurred while creating many order entities, try again later."
         raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
