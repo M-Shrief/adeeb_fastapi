@@ -59,6 +59,52 @@ async def get_orders(queries: Annotated[api_schemas.SharedQueriesForGetManyReque
         logger.error("Error when getting orders", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
+
+@router.get(
+    "/orders/me",
+    status_code=status.HTTP_200_OK,
+    response_model=api_schemas.GetAll_Res[component_schemas.GetOrders_Res],
+    response_model_exclude_none=True,
+)
+async def get_user_orders(queries: Annotated[api_schemas.SharedQueriesForGetManyRequests, Query()], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+    try:
+        if Authorization is None:
+            raise auth_utils.AuthorizationError
+        
+        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
+        if verified is False or  payload is None:
+            raise auth_utils.AuthorizationError
+
+        permissions: list[str] | None = payload.get("permissions")
+        if permissions is None:
+            raise auth_utils.AuthorizationError
+
+        authorized_list=[
+            auth_utils.create_authorized_item(RoleEnum.Normal, "read"),
+        ]
+        is_permitted = auth_utils.check_permission(authorized_list, permissions, "read")
+        if is_permitted is False:
+            raise auth_utils.AuthorizationError
+
+        user = payload["user"]
+
+        stmt = select(OrderModel, func.count().over().label('total')).where(OrderModel.user_id == user["id"]).offset(queries.offset).limit(queries.limit)
+        stmt = stmt.options(joins.prints_to_order)
+
+        resp  = await db.execute(stmt)
+        rows = resp.unique().all()
+
+        total_count: int | Literal[0] = rows[0].total if rows else 0
+        orders =  [component_schemas.GetOrders_Res.model_validate(row[0], from_attributes=True) for row in list(rows)]
+
+        return api_schemas.GetAll_Res[component_schemas.GetOrders_Res](data=orders, total_count=total_count, limit=queries.limit, offset=queries.offset)
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error("Error when getting orders", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
+
 @router.get(
     "/orders/{id}",
     status_code=status.HTTP_200_OK,
