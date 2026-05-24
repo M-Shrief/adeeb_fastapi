@@ -83,7 +83,7 @@ async def get_order_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_asyn
 
         is_administrator = check_adminstration(permissions, "read")
         if is_administrator is False: # if it's not admin
-            is_owner = check_order_ownership(order, payload)
+            is_owner = check_order_ownership(order.user_id, payload)
             if is_owner is False:
                 raise auth_utils.AuthorizationError
 
@@ -243,7 +243,7 @@ async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, d
 
         is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
         if is_administrator is False: # if it's not admin
-            is_owner = check_order_ownership(order, payload)
+            is_owner = check_order_ownership(order.user_id, payload)
             if is_owner is False:
                 raise auth_utils.AuthorizationError
             if order.is_updateable is False:
@@ -296,7 +296,7 @@ async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, db
 
         is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
         if is_administrator is False: # if it's not admin
-            is_owner = check_order_ownership(existing_order, payload)
+            is_owner = check_order_ownership(existing_order.id, payload)
             if is_owner is False:
                 raise auth_utils.AuthorizationError
 
@@ -366,7 +366,7 @@ async def update_print(order_id: UUID, print_id: UUID, req_body: component_schem
 
         is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
         if is_administrator is False: # if it's not admin
-            is_owner = check_order_ownership(order, payload)
+            is_owner = check_order_ownership(order.user_id, payload)
             if is_owner is False:
                 raise auth_utils.AuthorizationError
             # If the user wants to update it, we need to check if the order is updateable first.
@@ -424,7 +424,7 @@ async def delete_order(id: UUID, db: Annotated[AsyncSession, Depends(get_async_d
 
         is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
         if is_administrator is False: # if it's not admin
-            is_owner = check_order_ownership(order, payload)
+            is_owner = check_order_ownership(order.user_id, payload)
             if is_owner is False:
                 raise auth_utils.AuthorizationError
             if order.is_updateable is False:
@@ -482,7 +482,7 @@ async def delete_print(order_id: UUID, print_id: UUID,db: Annotated[AsyncSession
 
         is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
         if is_administrator is False: # if it's not admin
-            is_owner = check_order_ownership(order, payload)
+            is_owner = check_order_ownership(order.user_id, payload)
             if is_owner is False:
                 raise auth_utils.AuthorizationError
             if order.is_updateable is False:
