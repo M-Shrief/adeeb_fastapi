@@ -27,6 +27,19 @@ DB = DatabaseConfigType(
     conn_str=  F"host={__env.get("DB_HOST")} port={__env.get("DB_PORT")} user={__env.get("DB_USER")} dbname={__env.get("DB_NAME")} password={__env.get("DB_PASSWORD")} sslmode=disable"        
     )
 
+class CacheConfigType(TypedDict):
+    host: str
+    password: str
+    port: int
+
+cache_port = __env.get("DB_VALKEY_PORTPORT")
+
+CACHE = CacheConfigType(
+    host= __env.get("VALKEY_HOST") or "localhost",
+    password= __env.get("VALKEY_PASSWORD") or "postgres",
+    port= int(cache_port) if cache_port is not None else 6379,
+)
+
 class JWTKeysType(TypedDict):
     private: str
     public: str
