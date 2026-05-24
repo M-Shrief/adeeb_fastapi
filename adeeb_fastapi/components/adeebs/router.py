@@ -1,17 +1,17 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, exc, delete, func
-from sqlalchemy.orm import joinedload, load_only
 from typing import Annotated, Literal
 from uuid import UUID
+from glide import GlideClient
 ###
 from adeeb_fastapi.utils.logger import logger
 from adeeb_fastapi.database.index import get_async_db
 from adeeb_fastapi.database.models import Adeeb as AdeebModel
 from adeeb_fastapi.database import joins
+from adeeb_fastapi.cache.index import get_async_cache, cache_get, cache_set, format_key_by_id
 from adeeb_fastapi.schemas import adeebs as adeeb_schemas, api as api_schemas
 from adeeb_fastapi.components.adeebs import schemas as component_schemas
-
 
 router = APIRouter(tags=["Adeebs"])
 
@@ -45,12 +45,27 @@ async def get_adeebs(queries: Annotated[api_schemas.SharedQueriesForGetManyReque
     response_model=component_schemas.GetAdeeb_Res,
     response_model_exclude_none=True
 )
-async def get_adeeb_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
+async def get_adeeb_by_id(id: UUID, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        stmt = select(AdeebModel).where(AdeebModel.id == id)
-        stmt = stmt.options(joins.poems_to_adeeb).options(joins.chosen_verses_to_adeeb).options(joins.prose_qoutes_to_adeeb)
-        res = await db.scalars(statement=stmt)
-        adeeb = res.unique().one()
+        cache_key = format_key_by_id("adeeb", id)
+        cache_res = await cache_get(cache_key, cache)
+
+        if cache_res is not None:
+            adeeb = component_schemas.GetAdeeb_Res.model_validate(cache_res, from_attributes=True)
+        else:
+            stmt = select(AdeebModel).where(AdeebModel.id == id)
+            stmt = stmt.options(joins.poems_to_adeeb).options(joins.chosen_verses_to_adeeb).options(joins.prose_qoutes_to_adeeb)
+            res = await db.scalars(statement=stmt)
+            adeeb = res.unique().one()
+
+            adeeb = component_schemas.GetAdeeb_Res.model_validate(adeeb, from_attributes=True)
+            
+            await cache_set(
+                    key=cache_key,
+                    value=adeeb,
+                    client=cache
+                )
+
         return adeeb
 
     except exc.NoResultFound:
@@ -133,7 +148,7 @@ async def create_adeebs(data: list[component_schemas.CreateOneAdeeb_Req], db: An
     response_model=api_schemas.Update_Res,
     response_model_exclude_none=True
 )
-async def update_adeeb(id: UUID, req_body: component_schemas.UpdateAdeeb_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
+async def update_adeeb(id: UUID, req_body: component_schemas.UpdateAdeeb_Req, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
         stmt = select(AdeebModel).where(AdeebModel.id == id)
         res = await db.scalars(statement=stmt)    
@@ -145,6 +160,11 @@ async def update_adeeb(id: UUID, req_body: component_schemas.UpdateAdeeb_Req, db
             setattr(existing_adeeb, key, value)
 
         await db.commit()
+
+        # Delete from cache after update to prevent showing old data
+        cache_key = format_key_by_id("adeeb", id)
+        _ = await cache.delete([cache_key])
+ 
         return api_schemas.Update_Res()
         
     except exc.NoResultFound:
@@ -159,11 +179,15 @@ async def update_adeeb(id: UUID, req_body: component_schemas.UpdateAdeeb_Req, db
     response_model=api_schemas.Delete_Res,
     response_model_exclude_none=True
 )
-async def delete_adeeb(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
+async def delete_adeeb(id: UUID, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
         stmt = delete(AdeebModel).where(AdeebModel.id == id)
         _ = await db.execute(statement=stmt)
         await db.commit()
+
+        # Delete from cache after deletion to prevent showing deleted data
+        cache_key = format_key_by_id("adeeb", id)
+        _ = await cache.delete([cache_key])
 
         return api_schemas.Delete_Res()
     except exc.NoResultFound:
