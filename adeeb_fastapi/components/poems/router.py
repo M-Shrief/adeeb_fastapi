@@ -3,11 +3,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, exc, delete, func
 from typing import Annotated, Literal
 from uuid import UUID
+from glide import GlideClient
 ###
 from adeeb_fastapi.utils.logger import logger
 from adeeb_fastapi.database.index import get_async_db
 from adeeb_fastapi.database.models import Poem as PoemModel
 from adeeb_fastapi.database import joins
+from adeeb_fastapi.cache.index import get_async_cache, cache_get, cache_set, format_key_by_id
 from adeeb_fastapi.schemas import poems as poems_schemas, api as api_schemas
 from adeeb_fastapi.components.poems import schemas as component_schemas
 
@@ -43,12 +45,27 @@ async def get_poems(queries: Annotated[api_schemas.SharedQueriesForGetManyReques
     response_model=component_schemas.GetPoem_Res,
     response_model_exclude_none=True
 )
-async def get_poem_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
+async def get_poem_by_id(id: UUID, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        stmt = select(PoemModel).where(PoemModel.id == id)
-        stmt = stmt.options(joins.adeebs_to_poems).options(joins.chosen_verses_to_poem)
-        res = await db.scalars(statement=stmt)
-        poem = res.unique().one()
+        cache_key = format_key_by_id("poem", id)
+        cache_res = await cache_get(cache_key, cache)
+
+        if cache_res is not None:
+            poem = component_schemas.GetPoem_Res.model_validate(cache_res, from_attributes=True)
+        else:
+            stmt = select(PoemModel).where(PoemModel.id == id)
+            stmt = stmt.options(joins.adeebs_to_poems).options(joins.chosen_verses_to_poem)
+            res = await db.scalars(statement=stmt)
+            poem = res.unique().one()
+
+            poem = component_schemas.GetPoem_Res.model_validate(poem, from_attributes=True)
+
+            await cache_set(
+                key=cache_key,
+                value=poem,
+                client=cache
+            )
+
         return poem
 
     except exc.NoResultFound:
@@ -131,7 +148,7 @@ async def create_poems(data: list[component_schemas.CreateOnePoem_Req], db: Anno
     response_model=api_schemas.Update_Res,
     response_model_exclude_none=True
 )
-async def update_poem(id: UUID, req_body: component_schemas.UpdatePoem_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
+async def update_poem(id: UUID, req_body: component_schemas.UpdatePoem_Req, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
         stmt = select(PoemModel).where(PoemModel.id == id)
         res = await db.scalars(statement=stmt)    
@@ -143,6 +160,11 @@ async def update_poem(id: UUID, req_body: component_schemas.UpdatePoem_Req, db: 
             setattr(existing_poem, key, value)
 
         await db.commit()
+
+        # Delete from cache after update to prevent showing old data
+        cache_key = format_key_by_id("poem", id)
+        _ = await cache.delete([cache_key])
+ 
         return api_schemas.Update_Res()
         
     except exc.NoResultFound:
@@ -157,12 +179,16 @@ async def update_poem(id: UUID, req_body: component_schemas.UpdatePoem_Req, db: 
     response_model=api_schemas.Delete_Res,
     response_model_exclude_none=True
 )
-async def delete_poem(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
+async def delete_poem(id: UUID, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
         stmt = delete(PoemModel).where(PoemModel.id == id)
         _ = await db.execute(statement=stmt)
         await db.commit()
 
+       # Delete from cache after update to prevent showing old data
+        cache_key = format_key_by_id("poem", id)
+        _ = await cache.delete([cache_key])
+ 
         return api_schemas.Delete_Res()
     except exc.NoResultFound:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poem is not found!")
