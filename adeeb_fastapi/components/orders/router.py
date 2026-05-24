@@ -3,12 +3,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, exc, delete, func
 from typing import Annotated, Literal
 from uuid import UUID
+from glide import GlideClient
 ###
 from adeeb_fastapi.utils.logger import logger
 from adeeb_fastapi.utils import auth as auth_utils
 from adeeb_fastapi.database.index import get_async_db
 from adeeb_fastapi.database.models import Order as OrderModel, Print as PrintModel
 from adeeb_fastapi.database import joins
+from adeeb_fastapi.cache.index import get_async_cache, cache_get, cache_set, format_key_by_id
 from adeeb_fastapi.schemas import api as api_schemas
 from adeeb_fastapi.schemas.users import RoleEnum
 from adeeb_fastapi.schemas.orders import OrderStatusEnum
@@ -63,7 +65,7 @@ async def get_orders(queries: Annotated[api_schemas.SharedQueriesForGetManyReque
     response_model=component_schemas.GetOrder_Res,
     response_model_exclude_none=True
 )
-async def get_order_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+async def get_order_by_id(id: UUID, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
             raise auth_utils.AuthorizationError
@@ -76,16 +78,30 @@ async def get_order_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_asyn
         if permissions is None:
             raise auth_utils.AuthorizationError
 
-        stmt = select(OrderModel).where(OrderModel.id == id)
-        stmt = stmt.options(joins.prints_to_order)
-        res = await db.scalars(statement=stmt)
-        order = res.unique().one()
+        cache_key = format_key_by_id("order", id)
+        cache_res = await cache_get(cache_key, cache)
+
+        if cache_res is not None:
+            logger.info("cache")
+            order = component_schemas.GetOrder_Res.model_validate(cache_res, from_attributes=True)
+        else:
+            stmt = select(OrderModel).where(OrderModel.id == id)
+            stmt = stmt.options(joins.prints_to_order)
+            res = await db.scalars(statement=stmt)
+            order = res.unique().one()
+            order = component_schemas.GetOrder_Res.model_validate(order, from_attributes=True)
 
         is_administrator = check_adminstration(permissions, "read")
         if is_administrator is False: # if it's not admin
-            is_owner = check_order_ownership(order.user_id, payload)
+            is_owner = check_order_ownership(order.id, payload)
             if is_owner is False:
                 raise auth_utils.AuthorizationError
+
+        await cache_set(
+            key=cache_key,
+            value=order,
+            client=cache
+        )
 
         return order
 
@@ -218,7 +234,7 @@ async def create_orders(data: list[component_schemas.CreateOneOrder_Req], db: An
     response_model=component_schemas.PrintItem_Res,
     response_model_exclude_none=True
 )
-async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
             raise auth_utils.AuthorizationError
@@ -254,6 +270,11 @@ async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, d
         db.add(new_print)
         await db.commit()
         await db.refresh(new_print)
+
+        # Delete from cache after update to prevent showing old data
+        cache_key = format_key_by_id("order", order_id)
+        _ = await cache.delete([cache_key])
+
         return new_print
 
     except HTTPException as e:
@@ -270,7 +291,7 @@ async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, d
     response_model=api_schemas.Update_Res,
     response_model_exclude_none=True
 )
-async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
             raise auth_utils.AuthorizationError
@@ -325,6 +346,11 @@ async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, db
             setattr(existing_order, key, value)
 
         await db.commit()
+
+        # Delete from cache after update to prevent showing old data
+        cache_key = format_key_by_id("order", id)
+        _ = await cache.delete([cache_key])
+
         return api_schemas.Update_Res()
 
     except HTTPException as e:
@@ -341,7 +367,7 @@ async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, db
     response_model=api_schemas.Update_Res,
     response_model_exclude_none=True
 )
-async def update_print(order_id: UUID, print_id: UUID, req_body: component_schemas.UpdatePrint_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+async def update_print(order_id: UUID, print_id: UUID, req_body: component_schemas.UpdatePrint_Req, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
             raise auth_utils.AuthorizationError
@@ -382,6 +408,11 @@ async def update_print(order_id: UUID, print_id: UUID, req_body: component_schem
             setattr(existing_print, key, value)
 
         await db.commit()
+
+        # Delete from cache after update to prevent showing old data
+        cache_key = format_key_by_id("order", order_id)
+        _ = await cache.delete([cache_key])
+
         return api_schemas.Update_Res()
 
     except HTTPException as e:
@@ -398,7 +429,7 @@ async def update_print(order_id: UUID, print_id: UUID, req_body: component_schem
     response_model=api_schemas.Delete_Res,
     response_model_exclude_none=True
 )
-async def delete_order(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+async def delete_order(id: UUID, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
             raise auth_utils.AuthorizationError
@@ -439,6 +470,10 @@ async def delete_order(id: UUID, db: Annotated[AsyncSession, Depends(get_async_d
         _ = await db.execute(statement=order_stmt)
         await db.commit()
 
+        # Delete from cache after update to prevent showing old data
+        cache_key = format_key_by_id("order", id)
+        _ = await cache.delete([cache_key])
+
         return api_schemas.Delete_Res()
 
     except HTTPException as e:
@@ -455,7 +490,7 @@ async def delete_order(id: UUID, db: Annotated[AsyncSession, Depends(get_async_d
     response_model=api_schemas.Delete_Res,
     response_model_exclude_none=True
 )
-async def delete_print(order_id: UUID, print_id: UUID,db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+async def delete_print(order_id: UUID, print_id: UUID, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
             raise auth_utils.AuthorizationError
@@ -491,6 +526,10 @@ async def delete_print(order_id: UUID, print_id: UUID,db: Annotated[AsyncSession
         print_stmt = delete(PrintModel).where(PrintModel.id == print_id)
         _ = await db.execute(statement=print_stmt)
         await db.commit()
+
+        # Delete from cache after update to prevent showing old data
+        cache_key = format_key_by_id("order", order_id)
+        _ = await cache.delete([cache_key])
 
         return api_schemas.Delete_Res()
 
