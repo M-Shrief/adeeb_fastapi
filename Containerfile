@@ -49,7 +49,7 @@ RUN --mount=type=bind,source=poetry.lock,target=poetry.lock \
 # use --no-root because we didn't copy adeeb_fastapi/adeeb_fastapi yet
 RUN --mount=type=bind,source=poetry.lock,target=poetry.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    poetry install --no-root
+    poetry install --no-root --without dev
 
 ################################################################################
 FROM deps as build
@@ -60,6 +60,6 @@ COPY . .
 EXPOSE 8000
 
 # Use, if you'll run the Container directly
-#
+#CMD ["poetry", "run", "uvicorn", "adeeb_fastapi.main:app", "--port", "8000"]
 # Use if you use compose file, and seet default command to run the application there.
 CMD [""]
