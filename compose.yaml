@@ -1,0 +1,18 @@
+services:
+  adeeb_fastapi:
+    container_name: adeeb_fastapi
+    command: poetry run uvicorn adeeb_fastapi.main:app --port 8000
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: Containerfile
+    image: server
+    restart: unless-stopped
+    # We use host mode,
+    # so that we don't need to include postgres & valkey in the same compose file in development.
+    # later we can add network, and use ports for that.
+    network_mode: host
+    # ports: 
+    #   - "8000:8000"
+    init: true # Enables Tini for signal handling and reaping

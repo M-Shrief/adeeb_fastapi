@@ -44,6 +44,15 @@ $ poetry install
         ```
 
 - Run the app:
-```sh
-$ poetry run uvicorn adeeb_fastapi.main:app --reload
-```
+    - directly with uvicorn:
+        ```sh
+        $ poetry run uvicorn adeeb_fastapi.main:app --reload
+        ```
+    - directly with FastAPI CLI:
+        ```sh
+        $ poetry run fastapi dev adeeb_fastapi/main.py
+        ```
+    - use Podman for containerization:
+        ```sh
+        podman-compose -f compose.yaml up
+        ```
