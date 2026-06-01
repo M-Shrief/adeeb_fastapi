@@ -5,15 +5,15 @@ from typing import Any
 from json import loads
 from uuid import UUID
 ###
-from adeeb_fastapi.config import CACHE
+from adeeb_fastapi.config import cache_config
 
 async def get_async_cache()  -> AsyncGenerator[GlideClient, Any]:
     cache = await GlideClient.create(
         config=GlideClientConfiguration(
             addresses=[
-                NodeAddress(CACHE.get("host"), CACHE.get("port"))
+                NodeAddress(cache_config.host, cache_config.port)
             ],
-            credentials=ServerCredentials(password=CACHE.get("password")),
+            credentials=ServerCredentials(password=cache_config.password),
             advanced_config=AdvancedGlideClientConfiguration(connection_timeout=1000),
             compression=CompressionConfiguration(
                 enabled=True,

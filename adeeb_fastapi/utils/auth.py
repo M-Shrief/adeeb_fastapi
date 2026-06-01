@@ -5,7 +5,7 @@ from uuid import UUID
 from typing import Literal
 from datetime import UTC, datetime, timedelta
 ### 
-from adeeb_fastapi.config import JWTKeys
+from adeeb_fastapi.config import jwt_config
 from adeeb_fastapi.schemas.users import RoleEnum
 
 AuthorizationError = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
@@ -14,7 +14,7 @@ def create_jwt(id: UUID, username: str, roles: list[RoleEnum])->str:
     payload = create_jwt_payload(id, username, roles)
     token: str = jwt.encode(
         payload=payload,
-        key=JWTKeys.get("private"),
+        key=jwt_config.private_key,
         algorithm="RS256"
         )
 
@@ -30,7 +30,7 @@ def verify_jwt(authorization_header: str):
         # Decode JWT token
         payload = jwt.decode(
             jwt=token,
-            key=JWTKeys.get("public"),
+            key=jwt_config.public_key,
             algorithms=["RS256"]
             )
 

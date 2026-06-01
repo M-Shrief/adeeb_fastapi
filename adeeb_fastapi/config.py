@@ -1,53 +1,68 @@
-from dotenv import dotenv_values
-from typing import TypedDict
+from pydantic import computed_field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-__env = dotenv_values(".env")
 
-ENV = __env.get("ENV") or "dev"
-
-# Database
-class DatabaseConfigType(TypedDict):
+class DatabaseConfig(BaseSettings):
+    """Note: Use .model_validate({}) to prevent Basedpyright errros when initializing the class"""
+    model_config = SettingsConfigDict(
+        env_file='.env',  # path of .env
+        env_file_encoding='utf-8',
+        env_prefix="DB_", #prefix for everey field.
+        extra="ignore" # ignore other ENV so that we can modularize its use.
+    )
     user: str
     password: str
     host: str
     port: int
     name: str
-    url: str
-    conn_str: str
 
-db_port = __env.get("DB_PORT")
+    @computed_field
+    @property
+    def url(self)-> str:
+        return F"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.name}"
 
-DB = DatabaseConfigType(
-    user= __env.get("DB_USER") or "postgres",
-    password= __env.get("DB_PASSWORD") or "postgres",
-    host= __env.get("DB_HOST") or "localhost",
-    port= int(db_port) if db_port is not None else 5432,
-    name= __env.get("DB_NAME") or "adeeb_db",
-    url= F"postgresql://{__env.get("DB_USER")}:{__env.get("DB_PASSWORD")}@{__env.get("DB_HOST")}:{__env.get("DB_PORT")}/{__env.get("DB_NAME")}",
-    conn_str=  F"host={__env.get("DB_HOST")} port={__env.get("DB_PORT")} user={__env.get("DB_USER")} dbname={__env.get("DB_NAME")} password={__env.get("DB_PASSWORD")} sslmode=disable"        
+    @computed_field
+    @property
+    def conn_str(self)->str:
+        return F"host={self.host} port={self.port} user={self.user} dbname={self.name} password={self.password} sslmode=disable"
+
+db_config = DatabaseConfig.model_validate({})
+
+class CacheConfig(BaseSettings):
+    """Note: Use .model_validate({}) to prevent Basedpyright errros when initializing the class"""
+    model_config = SettingsConfigDict(
+        env_file='.env',  # path of .env
+        env_file_encoding='utf-8',
+        env_prefix="VALKEY_", #prefix for everey field.
+        extra="ignore" # ignore other ENV so that we can modularize its use.
     )
 
-class CacheConfigType(TypedDict):
     host: str
     password: str
     port: int
 
-cache_port = __env.get("DB_VALKEY_PORTPORT")
+cache_config = CacheConfig.model_validate({})
 
-CACHE = CacheConfigType(
-    host= __env.get("VALKEY_HOST") or "localhost",
-    password= __env.get("VALKEY_PASSWORD") or "postgres",
-    port= int(cache_port) if cache_port is not None else 6379,
-)
+class JWTConfig(BaseSettings):
+    """Note: Use .model_validate({}) to prevent Basedpyright errros when initializing the class"""
+    model_config = SettingsConfigDict(
+        env_file='.env',  # path of .env
+        env_file_encoding='utf-8',
+        env_prefix="JWT_", #prefix for everey field.
+        extra="ignore" # ignore other ENV so that we can modularize its use.
+    )
 
-class JWTKeysType(TypedDict):
-    private: str
-    public: str
+    private_path: str
+    public_path: str
 
-private_key_path = __env.get("JWT_PRIVATE")
-public_key_path = __env.get("JWT_PUBLIC")
+    @computed_field
+    @property
+    def private_key(self)->str:
+        return open(self.private_path).read()
 
-JWTKeys = JWTKeysType(
-    private=open(private_key_path if private_key_path is not None else "jwt_private_rsa256.key").read(),
-    public=open(public_key_path if public_key_path is not None else "jwt_public_rsa256.key").read(),
-)
+    @computed_field
+    @property
+    def public_key(self)->str:
+        return open(self.public_path).read()
+
+jwt_config = JWTConfig.model_validate({})

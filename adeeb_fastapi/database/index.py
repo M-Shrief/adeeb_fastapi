@@ -4,15 +4,15 @@ from sqlalchemy.orm.session import Session, sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession, AsyncEngine
 from collections.abc import AsyncGenerator, Generator
 #####
-from adeeb_fastapi.config import DB
+from adeeb_fastapi.config import db_config
 
 db_url = URL.create(
     drivername="postgresql+psycopg",
-    username=DB.get('user'),
-    password=DB.get('password'),
-    host=DB.get('host'),
-    database=DB.get('name'),
-    port=DB.get('port')
+    username=db_config.user,
+    password=db_config.password,
+    host=db_config.host,
+    database=db_config.name,
+    port=db_config.port,
 )
 
 
