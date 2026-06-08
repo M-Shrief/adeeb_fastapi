@@ -45,14 +45,18 @@ $ poetry install
         $ ssh-keygen -f jwt_private_rsa256.key -e -m PKCS8 > jwt_public_rsa256.key
         ```
 
-- Run the app:
+- Run the app for development:
+    - use shorthand script, that runs uvicorn:
+        ```sh
+        $ pdm run dev
+        ```
     - directly with uvicorn:
         ```sh
-        $ poetry run uvicorn adeeb_fastapi.main:app --reload
+        $ pdm run uvicorn adeeb_fastapi.main:app --reload
         ```
     - directly with FastAPI CLI:
         ```sh
-        $ poetry run fastapi dev adeeb_fastapi/main.py
+        $ pdm run fastapi dev adeeb_fastapi/main.py
         ```
     - use Podman for containerization:
         ```sh
