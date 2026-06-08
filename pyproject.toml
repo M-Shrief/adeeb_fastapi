@@ -20,7 +20,10 @@ dependencies = [
     "valkey-glide (>=2.4.0,<3.0.0)"
 ]
 
+[tool.pdm.scripts]
+dev = "uvicorn adeeb_fastapi.main:app --reload"
+
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
