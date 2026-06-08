@@ -7,49 +7,43 @@ FROM docker.io/library/python:${PYTHON_VERSION} AS base
 # PYTHONDONTWRITEBYTECODE=1 --> Prevents the creation of .pyc files. 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    POETRY_HOME="/opt/poetry" \
-    POETRY_VIRTUALENVS_IN_PROJECT=true \
-    POETRY_NO_INTERACTION=1 \
+    PDM_CHECK_UPDATE=false \
+    PDM_CACHE_DIR=/tmp/pdm-cache \
+    PDM_CHECK_UPDATE=false \
+    PDM_NON_INTERACTIVE=true \
+    PDM_HOME="/opt/pdm" \
     PROJECT_DIR="/adeeb_fastapi"
 
-    # Add Poetry to the PATH
-ENV PATH="$POETRY_HOME/bin:$PROJECT_DIR/.venv/bin:$PATH"
+    
+
+# Add Poetry to the PATH
+ENV PATH="$PDM_HOME/bin:$PROJECT_DIR/.venv/bin:$PATH"
 
 # Set working directory for all stages.
 WORKDIR $PROJECT_DIR
-
-# Install system dependencies
-RUN buildDeps="build-essential" \
-    && apt-get update \
-    && apt-get install --no-install-recommends -y \
-    curl \
-    && apt-get install -y --no-install-recommends $buildDeps \
-    && rm -rf /var/lib/apt/lists/*
 
 
 ################################################################################
 FROM base AS deps
 
-# Set Poetry version
-ENV POETRY_VERSION=2.3.4
 
-# Install Poetry - respects $POETRY_VERSION & $POETRY_HOME
-RUN curl -sSL https://install.python-poetry.org | python3 - && chmod a+x /opt/poetry/bin/poetry
+# Set Poetry version
+ENV PDM_VERSION=2.27.0
+
+# Install PDM - respects $PDM_VERSION & $PDM_HOME
+RUN pip install --no-cache-dir pdm==$PDM_VERSION
+
 
 RUN python -m venv .venv
 
 # Download dependencies as a separate step to take advantage of Docker's caching.
 # Leverage bind mounts to pyproject.toml and package-lock.json to avoid having to copy them
-# Install package dependencies with poetry, 
-# COPY poetry.lock pyproject.toml ./
-RUN --mount=type=bind,source=poetry.lock,target=poetry.lock \
+# Install package dependencies with pdm, 
+# COPY pdm.lock pyproject.toml ./
+RUN --mount=type=bind,source=pdm.lock,target=pdm.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    poetry env use .venv/bin/python3
+    mkdir __pypackages__ && pdm sync --prod --no-editable
 
-# use --no-root because we didn't copy adeeb_fastapi/adeeb_fastapi yet
-RUN --mount=type=bind,source=poetry.lock,target=poetry.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    poetry install --no-root --without dev
 
 ################################################################################
 FROM deps as build
@@ -60,6 +54,6 @@ COPY . .
 EXPOSE 8000
 
 # Use, if you'll run the Container directly
-#CMD ["poetry", "run", "uvicorn", "adeeb_fastapi.main:app", "--port", "8000"]
+#CMD ["pdm", "run", "uvicorn", "adeeb_fastapi.main:app", "--port", "8000"]
 # Use if you use compose file, and seet default command to run the application there.
 CMD [""]
