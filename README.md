@@ -16,6 +16,8 @@ Changes from primary iteration:
 - Changed Naming for:
     - `poet` into `adeeb`, as it includes all of them even the ones that create poems, and it's more aligned with the identity of the project
     - `proses` into `prose_qoutes`
+
+- Required admin authorization to write operation in Domain data, like Adeeb's component. so guests and normal users can only Read data, but not change it.
 ## Setup
 
 - Setup your virtual environment:
