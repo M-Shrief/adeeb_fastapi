@@ -18,6 +18,7 @@ from adeeb_fastapi.components.prose_qoutes.router import router as prose_qoutes_
 from adeeb_fastapi.schemas import api  as api_schemas
 # Utils
 from adeeb_fastapi.utils import rate_limiter
+from adeeb_fastapi.utils.auth import write_ops_auth
 from adeeb_fastapi.utils.middlewares import SecurityHeadersMiddleware
 
 @asynccontextmanager
@@ -112,15 +113,17 @@ app.include_router(
 app.include_router(
     router=adeebs_router,
     dependencies=[
-        Depends(rate_limiter.DEFAULT_RATE_LIMIT)
+        Depends(rate_limiter.DEFAULT_RATE_LIMIT),
+        Depends(write_ops_auth),
     ],
     prefix="/api/v1"
 )
 
 app.include_router(
     router=poems_router, 
-        dependencies=[
-        Depends(rate_limiter.DEFAULT_RATE_LIMIT)
+    dependencies=[
+        Depends(rate_limiter.DEFAULT_RATE_LIMIT),
+        Depends(write_ops_auth),
     ],
     prefix="/api/v1"
 )
@@ -128,7 +131,8 @@ app.include_router(
 app.include_router(
     router=chosen_verses_router,
     dependencies=[
-        Depends(rate_limiter.DEFAULT_RATE_LIMIT)
+        Depends(rate_limiter.DEFAULT_RATE_LIMIT),
+        Depends(write_ops_auth),
     ],
     prefix="/api/v1"
 )
@@ -136,7 +140,8 @@ app.include_router(
 app.include_router(
     router=prose_qoutes_router,
     dependencies=[
-        Depends(rate_limiter.DEFAULT_RATE_LIMIT)
+        Depends(rate_limiter.DEFAULT_RATE_LIMIT),
+        Depends(write_ops_auth),
     ],
     prefix="/api/v1"
 )

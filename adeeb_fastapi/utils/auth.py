@@ -1,10 +1,11 @@
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends, Request, Header
 import bcrypt
 import jwt
 from uuid import UUID
-from typing import Literal
+from typing import Literal, Annotated
 from datetime import UTC, datetime, timedelta
 ### 
+from adeeb_fastapi.utils.logger import logger
 from adeeb_fastapi.config import jwt_config
 from adeeb_fastapi.schemas.users import RoleEnum
 
@@ -113,3 +114,40 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed_password.encode())
+
+async def write_ops_auth(request: Request):
+    """Global router dependency that require JWT authorization in write operations.
+    
+    Require the user to be admin-like authorization.
+    """
+    try:
+        # Only process write operations
+        if request.method in ["PUT", "POST", "PATCH", "DELETE"]:
+        
+            auth_header = request.headers.get("Authorization")
+            if auth_header is None:
+                raise AuthorizationError
+            
+            payload, verified = verify_jwt(auth_header)
+            if verified is False or  payload is None:
+                raise AuthorizationError
+
+            permissions: list[str] | None = payload.get("permissions")
+            if permissions is None:
+                raise AuthorizationError
+
+            authorized_list=[
+                create_authorized_item(RoleEnum.Analytics, "write"),
+                create_authorized_item(RoleEnum.DBA, "write"),
+                create_authorized_item(RoleEnum.Management, "write"),
+            ]
+
+            is_administrator = check_permission(authorized_list, permissions, "write")
+            if is_administrator is False: # if it's not admin
+                raise AuthorizationError
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error("Error when checking authorization before write operation", request_url=request.url ,error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
