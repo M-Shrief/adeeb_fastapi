@@ -118,7 +118,7 @@ def verify_password(password: str, hashed_password: str) -> bool:
 async def write_ops_auth(request: Request):
     """Global router dependency that require JWT authorization in write operations.
     
-    Require the user to be admin-like authorization.
+    Require the user to be: Management, Analytics or DBA.
     """
     try:
         # Only process write operations
