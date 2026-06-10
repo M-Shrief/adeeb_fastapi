@@ -115,8 +115,8 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed_password.encode())
 
-async def write_ops_auth(request: Request):
-    """Global router dependency that require JWT authorization in write operations.
+async def write_ops_auth(request: Request, Authorization: Annotated[str | None, Header()] = None):
+    """Require JWT authorization in write operations: POST - PUT - PATCH - DELETE
     
     Require the user to be: Management, Analytics or DBA.
     """
@@ -124,11 +124,10 @@ async def write_ops_auth(request: Request):
         # Only process write operations
         if request.method in ["PUT", "POST", "PATCH", "DELETE"]:
         
-            auth_header = request.headers.get("Authorization")
-            if auth_header is None:
+            if Authorization is None:
                 raise AuthorizationError
             
-            payload, verified = verify_jwt(auth_header)
+            payload, verified = verify_jwt(Authorization)
             if verified is False or  payload is None:
                 raise AuthorizationError
 
