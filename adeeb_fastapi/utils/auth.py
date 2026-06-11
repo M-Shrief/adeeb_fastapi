@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status, Depends, Request, Header
+from fastapi import HTTPException, status, Request, Header
 import bcrypt
 import jwt
 from uuid import UUID
@@ -11,8 +11,8 @@ from adeeb_fastapi.schemas.users import RoleEnum
 
 AuthorizationError = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
 
-def create_jwt(id: UUID, username: str, roles: list[RoleEnum])->str:
-    payload = create_jwt_payload(id, username, roles)
+def create_jwt(id: UUID, username: str, roles: list[RoleEnum], exp_hours: int = 2)->str:
+    payload = create_jwt_payload(id, username, roles, exp_hours)
     token: str = jwt.encode(
         payload=payload,
         key=jwt_config.private_key,
@@ -49,8 +49,8 @@ def verify_jwt(authorization_header: str):
     except jwt.DecodeError:
         return None, False
 
-#  No need for a Payload TypedDict as I will only use it once.
-def create_jwt_payload(id: UUID, username: str, roles: list[RoleEnum]):
+def create_jwt_payload(id: UUID, username: str, roles: list[RoleEnum], exp_hours: int = 2):
+    #  No need for a Payload TypedDict as I will only use it once.
     time: datetime = datetime.now(UTC).replace(tzinfo=None)
 
     payload= {
@@ -60,7 +60,7 @@ def create_jwt_payload(id: UUID, username: str, roles: list[RoleEnum]):
         },
         "permissions": create_permissions(roles),
         "iat":time,
-        "exp":time + timedelta(minutes= 60 * 2) # Expire after 2 hours
+        "exp":time + timedelta(minutes= 60 * exp_hours) # Expire after 2 hours
     }
 
     return payload
