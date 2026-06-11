@@ -162,4 +162,41 @@ async def test_check_permission(subtests: pytest.Subtests):
 
         is_permitted = check_permission(authorized_list, permissions, "read")
         assert is_permitted is False
-  
+ 
+    
+@pytest.mark.asyncio
+async def test_write_ops_auth(subtests: pytest.Subtests):
+    id = uuid4()
+    username = "Name 1"
+
+    scope: Scope = {"type": "http", "method": "POST"}
+    request = Request(scope)
+
+    with subtests.test("Authorizing admin-like user to write operation"):
+        roles = [RoleEnum.Normal, RoleEnum.DBA]
+        token = create_jwt(id, username, roles)
+
+        try:
+            _ = await write_ops_auth(request, f"Bearer {token}")
+        except Exception as e:
+            pytest.fail(f"Unexpected exception raised: {e}")
+
+    with subtests.test("Not authorizing non-admin users to write operation, and throwing Authorization error."):
+        roles = [RoleEnum.Normal]
+        token = create_jwt(id, username, roles)
+
+        with pytest.raises(HTTPException) as err:
+            _ = await write_ops_auth(request, f"Bearer {token}")
+        assert err.value == AuthorizationError
+
+    with subtests.test("Not caring about authorization in Read-only requests"):
+        scope2 = {"type": "http", "method": "GET"}
+        request2 = Request(scope2)
+        roles = [RoleEnum.Normal]
+        token = create_jwt(id, username, roles, exp_hours=0)
+
+        try:
+            _ = await write_ops_auth(request2)
+            _ = await write_ops_auth(request2, f"Bearer {token}")
+        except Exception as e:
+            pytest.fail(f"Unexpected exception raised: {e}")
