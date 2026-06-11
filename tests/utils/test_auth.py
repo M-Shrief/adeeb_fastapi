@@ -102,4 +102,64 @@ async def test_verify_jwt(subtests: pytest.Subtests):
         assert is_verified is False, "JWT token is verifiy incorrectly"
         assert jwt_payload is None, "payload is not None"
 
+@pytest.mark.asyncio
+async def test_check_permission(subtests: pytest.Subtests):
 
+    with subtests.test("Correctly check permissions"):
+        authorized_list=[
+            create_authorized_item(RoleEnum.Analytics, "read"),
+            create_authorized_item(RoleEnum.DBA, "read"),
+            create_authorized_item(RoleEnum.Management, "read"),
+        ]
+
+        permissions=[
+            create_authorized_item(RoleEnum.Management, "read"),
+        ]
+
+        is_permitted = check_permission(authorized_list, permissions, "read")
+        assert is_permitted is True
+    
+    with subtests.test("correctly not permitting user without authorization"):
+        authorized_list=[
+            create_authorized_item(RoleEnum.Analytics, "read"),
+            create_authorized_item(RoleEnum.DBA, "read"),
+            create_authorized_item(RoleEnum.Management, "read"),
+        ]
+
+        permissions=[
+            create_authorized_item(RoleEnum.Normal, "read"),
+        ]
+
+        is_permitted = check_permission(authorized_list, permissions, "read")
+        assert is_permitted is False
+    
+    with subtests.test("correctly not permitting a user without write authorization"):
+        authorized_list=[
+            create_authorized_item(RoleEnum.Analytics, "write"),
+            create_authorized_item(RoleEnum.DBA, "write"),
+            create_authorized_item(RoleEnum.Management, "write"),
+        ]
+
+        permissions=[
+            create_authorized_item(RoleEnum.Normal, "read"),
+            create_authorized_item(RoleEnum.DBA, "read"),
+        ]
+
+        is_permitted = check_permission(authorized_list, permissions, "write")
+        assert is_permitted is False
+    
+    with subtests.test("correctly not permitting banned user"):
+        authorized_list=[
+            create_authorized_item(RoleEnum.Analytics, "read"),
+            create_authorized_item(RoleEnum.DBA, "read"),
+            create_authorized_item(RoleEnum.Management, "read"),
+        ]
+
+        permissions=[
+            create_authorized_item(RoleEnum.Normal, "read"),
+            create_authorized_item(RoleEnum.BANNED, "read"),
+        ]
+
+        is_permitted = check_permission(authorized_list, permissions, "read")
+        assert is_permitted is False
+  
