@@ -35,18 +35,10 @@ def verify_jwt(authorization_header: str):
             algorithms=["RS256"]
             )
 
-        # Check expiration date
-        exp = payload.get("exp")
-        if exp is None:
-            return payload, False
-        expire_timepstamp = datetime.fromtimestamp(exp).replace(tzinfo=None)
-        current_timepstamp = datetime.now(UTC).replace(tzinfo=None)
-        # if the expire date is smaller than the current time (i.e. has passed), then it's not authorized 
-        if expire_timepstamp < current_timepstamp:
-            return payload, False
-
         return payload, True
-    except jwt.DecodeError:
+
+    except jwt.exceptions.InvalidTokenError as e: # that's the base error for decode()
+        logger.error("Unknown error verifing JWT token", error=e)
         return None, False
 
 def create_jwt_payload(id: UUID, username: str, roles: list[RoleEnum], exp_hours: int = 2):
