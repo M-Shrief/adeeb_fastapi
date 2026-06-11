@@ -45,3 +45,61 @@ async def test_create_jwt():
     assert username == user["username"]
     assert permissions == payload.get("permissions")    
 
+
+@pytest.mark.asyncio
+async def test_verify_jwt(subtests: pytest.Subtests):
+    # same as above, we'll seperate testing create_jwt() & verify_jwt()
+    # So we'll write the test using the package directly.
+
+    id = uuid4()
+    username = "Name 1"
+    roles = [RoleEnum.Normal, RoleEnum.DBA]
+    permissions = create_permissions(roles)
+
+    with subtests.test("Verifing correct JWT token, and got the payload correctly"):
+        payload1 =  create_jwt_payload(id, username, roles)
+        token: str = jwt.encode(
+            payload=payload1,
+            key=jwt_config.private_key,
+            algorithm="RS256"
+            )
+
+        jwt_payload, is_verified = verify_jwt(f"Bearer {token}")
+        assert is_verified is True, "JWT token is not verified"
+        assert jwt_payload is not None, "Couldn't get payload from JWT"
+
+        user = jwt_payload.get("user")
+        assert user is not None , "Couldn't get user dict from payload"
+        assert str(id) == user["id"]
+        assert username == user["username"]
+        assert permissions == jwt_payload.get("permissions")    
+
+        # Check expiration date
+        exp = jwt_payload.get("exp")
+        assert exp is not None
+        expire_timepstamp = datetime.fromtimestamp(exp).replace(tzinfo=None)
+        current_timepstamp = datetime.now(UTC).replace(tzinfo=None)
+        assert expire_timepstamp > current_timepstamp
+        diff_delta = expire_timepstamp - current_timepstamp   
+        diff_secs = diff_delta.seconds 
+        assert diff_secs > 17900 and diff_secs < 18100 
+
+    with subtests.test("Verifing expired JWT token"):
+        payload1 =  create_jwt_payload(id, username, roles, 0)
+        token: str = jwt.encode(
+            payload=payload1,
+            key=jwt_config.private_key,
+            algorithm="RS256"
+            )
+        jwt_payload, is_verified = verify_jwt(f"Bearer {token}")
+        assert is_verified is False, "JWT token is verified"
+        assert jwt_payload is None, "payload is not None"
+
+    with subtests.test("Verifing incorrect JWT token"):
+        token = "Bearer eyJhbahaOisfsaI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7ImlkIjoiMDk1NzE0ZDgtMzYyMi00NmFhLWIzNTgtMTUwZGIwYmY0Y2UyIiwidXNlcm5h...qHawhh2WZgFCJ4X4RBA_Z29eQSb3NsjFoLL2Z5xDqoUCgdlXNijjtX16xsVoW5HC9w8xZ_79bmjMkYuyToVNd7Mt395AbyIhXvHKQC4WnFP1qs8mo3IQzo"
+
+        jwt_payload, is_verified = verify_jwt(f"Bearer {token}")
+        assert is_verified is False, "JWT token is verifiy incorrectly"
+        assert jwt_payload is None, "payload is not None"
+
+
