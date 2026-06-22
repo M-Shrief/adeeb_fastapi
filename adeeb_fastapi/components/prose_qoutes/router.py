@@ -127,7 +127,7 @@ async def create_prose_qoutes(data: list[component_schemas.CreateOneProseQoute_R
 
 @router.put(
     "/prose_qoutes/{id}",
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_204_NO_CONTENT,
     response_model=api_schemas.Update_Res,
     response_model_exclude_none=True
 )
@@ -153,7 +153,7 @@ async def update_prose_qoute(id: UUID, req_body: component_schemas.UpdateProseQo
 
 @router.delete(
     "/prose_qoutes/{id}",
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_204_NO_CONTENT,
     response_model=api_schemas.Delete_Res,
     response_model_exclude_none=True
 )

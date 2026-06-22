@@ -226,7 +226,7 @@ async def login(user: component_schemas.UserLogin_Req, db: Annotated[AsyncSessio
 
 @router.put(
     "/users/me",
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_204_NO_CONTENT,
     response_model=api_schemas.Update_Res,
     response_model_exclude_none=True,
 )
@@ -283,7 +283,7 @@ async def update_current_user(new_data: component_schemas.UpdateCurrentUser_Req,
 
 @router.put(
     "/users/{id}",
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_204_NO_CONTENT,
     response_model=api_schemas.Update_Res,
     response_model_exclude_none=True,
 )
@@ -350,7 +350,7 @@ async def update_user_by_id(id: UUID, new_data: component_schemas.UpdateUserById
 
 @router.delete(
     "/users/me",
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_204_NO_CONTENT,
     response_model=api_schemas.Delete_Res,
     response_model_exclude_none=True,
 )
@@ -394,7 +394,7 @@ async def delete_current_user(db: Annotated[AsyncSession, Depends(get_async_db)]
 
 @router.delete(
     "/users/{id}",
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_204_NO_CONTENT,
     response_model=api_schemas.Delete_Res,
     response_model_exclude_none=True,
 )

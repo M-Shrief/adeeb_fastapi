@@ -144,7 +144,7 @@ async def create_poems(data: list[component_schemas.CreateOnePoem_Req], db: Anno
 
 @router.put(
     "/poems/{id}",
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_204_NO_CONTENT,
     response_model=api_schemas.Update_Res,
     response_model_exclude_none=True
 )
@@ -175,7 +175,7 @@ async def update_poem(id: UUID, req_body: component_schemas.UpdatePoem_Req, cach
 
 @router.delete(
     "/poems/{id}",
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_204_NO_CONTENT,
     response_model=api_schemas.Delete_Res,
     response_model_exclude_none=True
 )

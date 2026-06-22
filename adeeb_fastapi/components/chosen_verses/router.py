@@ -127,7 +127,7 @@ async def create_many_chosen_verses(data: list[component_schemas.CreateOneChosen
 
 @router.put(
     "/chosen_verses/{id}",
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_204_NO_CONTENT,
     response_model=api_schemas.Update_Res,
     response_model_exclude_none=True
 )
@@ -153,7 +153,7 @@ async def update_chosen_verses(id: UUID, req_body: component_schemas.UpdateChose
 
 @router.delete(
     "/chosen_verses/{id}",
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_204_NO_CONTENT,
     response_model=api_schemas.Delete_Res,
     response_model_exclude_none=True
 )

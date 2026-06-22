@@ -333,7 +333,7 @@ async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, c
 
 @router.put(
     "/orders/{id}",
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_204_NO_CONTENT,
     response_model=api_schemas.Update_Res,
     response_model_exclude_none=True
 )
@@ -409,7 +409,7 @@ async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, ca
 
 @router.put(
     "/orders/{order_id}/prints/{print_id}",
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_204_NO_CONTENT,
     response_model=api_schemas.Update_Res,
     response_model_exclude_none=True
 )
@@ -471,7 +471,7 @@ async def update_print(order_id: UUID, print_id: UUID, req_body: component_schem
 
 @router.delete(
     "/orders/{id}",
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_204_NO_CONTENT,
     response_model=api_schemas.Delete_Res,
     response_model_exclude_none=True
 )
@@ -532,7 +532,7 @@ async def delete_order(id: UUID, cache: Annotated[GlideClient, Depends(get_async
 
 @router.delete(
     "/orders/{order_id}/prints/{print_id}",
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_204_NO_CONTENT,
     response_model=api_schemas.Delete_Res,
     response_model_exclude_none=True
 )
