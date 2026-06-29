@@ -202,7 +202,7 @@ async def create_order(order_data: component_schemas.CreateOneOrder_Req, db: Ann
             raise HTTPException(status.HTTP_409_CONFLICT, detail=detail_msg)
         else:
             detail_msg = "An error occurred while creating a order, try again later."
-            raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
 
 @router.post(
     path="/orders/many",
@@ -272,7 +272,7 @@ async def create_orders(data: list[component_schemas.CreateOneOrder_Req], db: An
         raise e
     except Exception as e:
         detail_msg = "An error occurred while creating many order entities, try again later."
-        raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
 
 @router.post(
     "/orders/{order_id}/prints/",
@@ -309,7 +309,7 @@ async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, c
             if is_owner is False:
                 raise auth_utils.AuthorizationError
             if order.is_updateable is False:
-                    raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unauthorized to be updated")
 
         new_print = PrintModel(**req_body.model_dump(), order_id=order.id, user_id=order.user_id)
 
@@ -368,7 +368,7 @@ async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, ca
                 raise auth_utils.AuthorizationError
 
             if existing_order.is_updateable is False:
-                raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized to be updated")
             # Make sure the user can't update interanl values like: is_updateable, is_completed
             # we assign them to None, as we can exclude them later with model_dump(exclude_none=True)
             else: 
@@ -443,7 +443,7 @@ async def update_print(order_id: UUID, print_id: UUID, req_body: component_schem
                 raise auth_utils.AuthorizationError
             # If the user wants to update it, we need to check if the order is updateable first.
             if order.is_updateable is False:
-                raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized to be updated")
 
         print_stmt = select(PrintModel).where(PrintModel.id == print_id)
         res = await db.scalars(statement=print_stmt)
@@ -567,7 +567,7 @@ async def delete_print(order_id: UUID, print_id: UUID, cache: Annotated[GlideCli
             if is_owner is False:
                 raise auth_utils.AuthorizationError
             if order.is_updateable is False:
-                raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized to be updated")
 
         print_stmt = delete(PrintModel).where(PrintModel.id == print_id)
         _ = await db.execute(statement=print_stmt)

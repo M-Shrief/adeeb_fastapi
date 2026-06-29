@@ -81,7 +81,7 @@ async def create_one_chosen_verses(chosen_verses: component_schemas.CreateOneCho
             raise HTTPException(status.HTTP_409_CONFLICT, detail=detail_msg)
         else:
             detail_msg = "An error occurred while creating a chosen_verses, try again later."
-            raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
 
 @router.post(
     path="/chosen_verses/many",
@@ -123,7 +123,7 @@ async def create_many_chosen_verses(data: list[component_schemas.CreateOneChosen
 
     except Exception as e:
         detail_msg = "An error occurred while creating many chosen_verses entities, try again later."
-        raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
 
 @router.put(
     "/chosen_verses/{id}",

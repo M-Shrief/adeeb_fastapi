@@ -186,7 +186,7 @@ async def signup(user: component_schemas.UserSignup_Req, db: Annotated[AsyncSess
             raise HTTPException(status.HTTP_409_CONFLICT, detail=detail_msg)
         else:
             detail_msg = "An error occurred while signing up, try again later."
-            raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail=detail_msg)
 
 @router.post(
     "/users/login",
@@ -195,7 +195,6 @@ async def signup(user: component_schemas.UserSignup_Req, db: Annotated[AsyncSess
     response_model_exclude_none=True
 )
 async def login(user: component_schemas.UserLogin_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
-    base_err = "User's name or password is incorrect."
     try:
         stmt = select(UserModel).where(UserModel.username == user.username) ## need to select required fields only.
         res =  await db.execute(statement=stmt)
@@ -204,7 +203,7 @@ async def login(user: component_schemas.UserLogin_Req, db: Annotated[AsyncSessio
 
         if existing_user: # User exist in DB
             if auth_utils.verify_password(user.password, existing_user.password) is False: # if password is incorrect.
-                raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=base_err)
+                raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="User's password is incorrect.")
             
             res_user = users_schemas.DescriptiveSchema(id=existing_user.id, username=existing_user.username, roles=existing_user.roles)
             access_token = auth_utils.create_jwt(id=existing_user.id, username=existing_user.username, roles=existing_user.roles)
@@ -212,10 +211,10 @@ async def login(user: component_schemas.UserLogin_Req, db: Annotated[AsyncSessio
 
         else:
             # User doesn't exist
-            raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=base_err)
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="User's name is incorrect.")
 
     except exc.NoResultFound:
-        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=base_err)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User's name is incorrect.")
     except HTTPException as e:
         raise e
     except Exception as e:

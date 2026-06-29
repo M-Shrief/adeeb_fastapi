@@ -98,7 +98,7 @@ async def create_adeeb(adeeb: component_schemas.CreateOneAdeeb_Req, db: Annotate
             raise HTTPException(status.HTTP_409_CONFLICT, detail=detail_msg)
         else:
             detail_msg = "An error occurred while creating a adeeb, try again later."
-            raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
 
 @router.post(
     path="/adeebs/many",
@@ -140,7 +140,7 @@ async def create_adeebs(data: list[component_schemas.CreateOneAdeeb_Req], db: An
 
     except Exception as e:
         detail_msg = "An error occurred while creating many adeeb entities, try again later."
-        raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=detail_msg)
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
 
 @router.put(
     "/adeebs/{id}",
