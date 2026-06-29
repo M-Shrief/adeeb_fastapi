@@ -501,11 +501,7 @@ async def delete_order(id: UUID, cache: Annotated[GlideClient, Depends(get_async
 
         is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
         if is_administrator is False: # if it's not admin
-            is_owner = check_order_ownership(order.user_id, payload)
-            if is_owner is False:
-                raise auth_utils.AuthorizationError
-            if order.is_updateable is False:
-                raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Can't be updated")
+            raise auth_utils.AuthorizationError
 
 
         print_stmt = delete(PrintModel).where(PrintModel.order_id == id)
