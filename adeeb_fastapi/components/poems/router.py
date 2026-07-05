@@ -145,8 +145,6 @@ async def create_poems(data: list[component_schemas.CreateOnePoem_Req], db: Anno
 @router.put(
     "/poems/{id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    response_model=api_schemas.Update_Res,
-    response_model_exclude_none=True
 )
 async def update_poem(id: UUID, req_body: component_schemas.UpdatePoem_Req, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
@@ -165,7 +163,7 @@ async def update_poem(id: UUID, req_body: component_schemas.UpdatePoem_Req, cach
         cache_key = format_key_by_id("poem", id)
         _ = await cache.delete([cache_key])
  
-        return api_schemas.Update_Res()
+        return 
         
     except exc.NoResultFound:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poem is not found!")
@@ -176,8 +174,6 @@ async def update_poem(id: UUID, req_body: component_schemas.UpdatePoem_Req, cach
 @router.delete(
     "/poems/{id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    response_model=api_schemas.Delete_Res,
-    response_model_exclude_none=True
 )
 async def delete_poem(id: UUID, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
@@ -189,7 +185,7 @@ async def delete_poem(id: UUID, cache: Annotated[GlideClient, Depends(get_async_
         cache_key = format_key_by_id("poem", id)
         _ = await cache.delete([cache_key])
  
-        return api_schemas.Delete_Res()
+        return
     except exc.NoResultFound:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poem is not found!")
     except Exception as e:

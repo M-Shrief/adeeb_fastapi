@@ -276,7 +276,7 @@ async def create_orders(data: list[component_schemas.CreateOneOrder_Req], db: An
 
 @router.post(
     "/orders/{order_id}/prints/",
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_201_CREATED,
     response_model=component_schemas.PrintItem_Res,
     response_model_exclude_none=True
 )
@@ -334,8 +334,6 @@ async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, c
 @router.put(
     "/orders/{id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    response_model=api_schemas.Update_Res,
-    response_model_exclude_none=True
 )
 async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
@@ -397,7 +395,7 @@ async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, ca
         cache_key = format_key_by_id("order", id)
         _ = await cache.delete([cache_key])
 
-        return api_schemas.Update_Res()
+        return 
 
     except HTTPException as e:
         raise e
@@ -410,8 +408,6 @@ async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, ca
 @router.put(
     "/orders/{order_id}/prints/{print_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    response_model=api_schemas.Update_Res,
-    response_model_exclude_none=True
 )
 async def update_print(order_id: UUID, print_id: UUID, req_body: component_schemas.UpdatePrint_Req, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
@@ -459,7 +455,7 @@ async def update_print(order_id: UUID, print_id: UUID, req_body: component_schem
         cache_key = format_key_by_id("order", order_id)
         _ = await cache.delete([cache_key])
 
-        return api_schemas.Update_Res()
+        return 
 
     except HTTPException as e:
         raise e
@@ -471,9 +467,7 @@ async def update_print(order_id: UUID, print_id: UUID, req_body: component_schem
 
 @router.delete(
     "/orders/{id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    response_model=api_schemas.Delete_Res,
-    response_model_exclude_none=True
+    status_code=status.HTTP_204_NO_CONTENT
 )
 async def delete_order(id: UUID, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
@@ -516,7 +510,7 @@ async def delete_order(id: UUID, cache: Annotated[GlideClient, Depends(get_async
         cache_key = format_key_by_id("order", id)
         _ = await cache.delete([cache_key])
 
-        return api_schemas.Delete_Res()
+        return 
 
     except HTTPException as e:
         raise e
@@ -529,8 +523,6 @@ async def delete_order(id: UUID, cache: Annotated[GlideClient, Depends(get_async
 @router.delete(
     "/orders/{order_id}/prints/{print_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    response_model=api_schemas.Delete_Res,
-    response_model_exclude_none=True
 )
 async def delete_print(order_id: UUID, print_id: UUID, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
@@ -573,7 +565,7 @@ async def delete_print(order_id: UUID, print_id: UUID, cache: Annotated[GlideCli
         cache_key = format_key_by_id("order", order_id)
         _ = await cache.delete([cache_key])
 
-        return api_schemas.Delete_Res()
+        return 
 
     except HTTPException as e:
         raise e

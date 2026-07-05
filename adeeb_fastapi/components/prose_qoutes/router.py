@@ -128,8 +128,6 @@ async def create_prose_qoutes(data: list[component_schemas.CreateOneProseQoute_R
 @router.put(
     "/prose_qoutes/{id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    response_model=api_schemas.Update_Res,
-    response_model_exclude_none=True
 )
 async def update_prose_qoute(id: UUID, req_body: component_schemas.UpdateProseQoute_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
@@ -143,7 +141,7 @@ async def update_prose_qoute(id: UUID, req_body: component_schemas.UpdateProseQo
             setattr(existing_prose_qoute, key, value)
 
         await db.commit()
-        return api_schemas.Update_Res()
+        return
         
     except exc.NoResultFound:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ProseQoute is not found!")
@@ -154,8 +152,6 @@ async def update_prose_qoute(id: UUID, req_body: component_schemas.UpdateProseQo
 @router.delete(
     "/prose_qoutes/{id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    response_model=api_schemas.Delete_Res,
-    response_model_exclude_none=True
 )
 async def delete_prose_qoute(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
@@ -163,7 +159,7 @@ async def delete_prose_qoute(id: UUID, db: Annotated[AsyncSession, Depends(get_a
         _ = await db.execute(statement=stmt)
         await db.commit()
 
-        return api_schemas.Delete_Res()
+        return
     except exc.NoResultFound:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ProseQoute is not found!")
     except Exception as e:
