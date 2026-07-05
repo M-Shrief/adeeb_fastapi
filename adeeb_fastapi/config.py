@@ -19,7 +19,8 @@ class DatabaseConfig(BaseSettings):
     @computed_field
     @property
     def url(self)-> str:
-        return F"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.name}"
+        # Note using the correct driver to use async connections
+        return F"postgresql+psycopg://{self.user}:{self.password}@{self.host}:{self.port}/{self.name}"
 
     @computed_field
     @property
