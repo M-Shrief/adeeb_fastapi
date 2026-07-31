@@ -1,18 +1,7 @@
-from typing import Literal,  Any
+from typing import  Any
 from uuid import UUID
 ###
-from adeeb_fastapi.utils import auth as auth_utils
-from adeeb_fastapi.schemas.users import RoleEnum
 
-def check_adminstration(permissions: list[str], op: Literal["write", "read"]):
-    authorized_list=[
-        auth_utils.create_authorized_item(RoleEnum.Analytics, op),
-        auth_utils.create_authorized_item(RoleEnum.DBA, op),
-        auth_utils.create_authorized_item(RoleEnum.Management, op),
-    ]
-    is_administrator = auth_utils.check_permission(authorized_list, permissions, op)
-    
-    return is_administrator
 
 
 def check_order_ownership(user_id: UUID | None, jwt_payload: dict[str, Any]):

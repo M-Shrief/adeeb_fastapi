@@ -15,7 +15,7 @@ from adeeb_fastapi.schemas import api as api_schemas
 from adeeb_fastapi.schemas.users import RoleEnum
 from adeeb_fastapi.schemas.orders import OrderStatusEnum
 from adeeb_fastapi.components.orders import schemas as component_schemas
-from adeeb_fastapi.components.orders.shared import check_adminstration, check_order_ownership
+from adeeb_fastapi.components.orders.shared import check_order_ownership
 
 router = APIRouter(tags=["Orders"])
 
@@ -38,7 +38,7 @@ async def get_orders(queries: Annotated[api_schemas.SharedQueriesForGetManyReque
         if permissions is None:
             raise auth_utils.AuthorizationError
 
-        is_administrator = check_adminstration(permissions, "read")
+        is_administrator = auth_utils.check_adminstration(permissions, "read")
         if is_administrator is False:
             raise auth_utils.AuthorizationError
 
@@ -137,7 +137,7 @@ async def get_order_by_id(id: UUID, cache: Annotated[GlideClient, Depends(get_as
             order = res.unique().one()
             order = component_schemas.GetOrder_Res.model_validate(order, from_attributes=True)
 
-        is_administrator = check_adminstration(permissions, "read")
+        is_administrator = auth_utils.check_adminstration(permissions, "read")
         if is_administrator is False: # if it's not admin
             is_owner = check_order_ownership(order.id, payload)
             if is_owner is False:
@@ -297,13 +297,7 @@ async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, c
         res = await db.scalars(statement=stmt)
         order = res.unique().one()
 
-        authorized_list=[
-            auth_utils.create_authorized_item(RoleEnum.Analytics, "write"),
-            auth_utils.create_authorized_item(RoleEnum.DBA, "write"),
-            auth_utils.create_authorized_item(RoleEnum.Management, "write"),
-        ]
-
-        is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
+        is_administrator = auth_utils.check_adminstration(permissions, "write")
         if is_administrator is False: # if it's not admin
             is_owner = check_order_ownership(order.user_id, payload)
             if is_owner is False:
@@ -353,13 +347,7 @@ async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, ca
         res = await db.scalars(statement=stmt)    
         existing_order = res.unique().one()
 
-        authorized_list=[
-            auth_utils.create_authorized_item(RoleEnum.Analytics, "write"),
-            auth_utils.create_authorized_item(RoleEnum.DBA, "write"),
-            auth_utils.create_authorized_item(RoleEnum.Management, "write"),
-        ]
-
-        is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
+        is_administrator = auth_utils.check_adminstration(permissions, "write")
         if is_administrator is False: # if it's not admin
             is_owner = check_order_ownership(existing_order.id, payload)
             if is_owner is False:
@@ -372,6 +360,7 @@ async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, ca
             else: 
                 req_body.is_updateable = None
                 req_body.status = None
+                req_body.user_id = None
 
         # Ensuring Data Integrity
         ## If the order is aborted or marked as completed, then we make sure that is_updateable is False
@@ -426,13 +415,7 @@ async def update_print(order_id: UUID, print_id: UUID, req_body: component_schem
         res = await db.scalars(statement=order_stmt)
         order = res.unique().one()
 
-        authorized_list=[
-            auth_utils.create_authorized_item(RoleEnum.Analytics, "write"),
-            auth_utils.create_authorized_item(RoleEnum.DBA, "write"),
-            auth_utils.create_authorized_item(RoleEnum.Management, "write"),
-        ]
-
-        is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
+        is_administrator = auth_utils.check_adminstration(permissions, "write")
         if is_administrator is False: # if it's not admin
             is_owner = check_order_ownership(order.user_id, payload)
             if is_owner is False:
@@ -441,7 +424,7 @@ async def update_print(order_id: UUID, print_id: UUID, req_body: component_schem
             if order.is_updateable is False:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized to be updated")
 
-        print_stmt = select(PrintModel).where(PrintModel.id == print_id)
+        print_stmt = select(PrintModel).where(PrintModel.id == print_id).where(PrintModel.order_id == order_id)
         res = await db.scalars(statement=print_stmt)
         existing_print = res.unique().one()
 
@@ -483,17 +466,7 @@ async def delete_order(id: UUID, cache: Annotated[GlideClient, Depends(get_async
             raise auth_utils.AuthorizationError
 
 
-        order_stmt = select(OrderModel).where(OrderModel.id == id)
-        res = await db.scalars(statement=order_stmt)
-        order = res.unique().one()
-
-        authorized_list=[
-            auth_utils.create_authorized_item(RoleEnum.Analytics, "write"),
-            auth_utils.create_authorized_item(RoleEnum.DBA, "write"),
-            auth_utils.create_authorized_item(RoleEnum.Management, "write"),
-        ]
-
-        is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
+        is_administrator = auth_utils.check_adminstration(permissions, "write")
         if is_administrator is False: # if it's not admin
             raise auth_utils.AuthorizationError
 
@@ -543,13 +516,7 @@ async def delete_print(order_id: UUID, print_id: UUID, cache: Annotated[GlideCli
         order = res.unique().one()
 
 
-        authorized_list=[
-            auth_utils.create_authorized_item(RoleEnum.Analytics, "write"),
-            auth_utils.create_authorized_item(RoleEnum.DBA, "write"),
-            auth_utils.create_authorized_item(RoleEnum.Management, "write"),
-        ]
-
-        is_administrator = auth_utils.check_permission(authorized_list, permissions, "write")
+        is_administrator = auth_utils.check_adminstration(permissions, "write")
         if is_administrator is False: # if it's not admin
             is_owner = check_order_ownership(order.user_id, payload)
             if is_owner is False:

@@ -100,6 +100,18 @@ def check_permission(authorized_list: list[str], permissions: list[str], op: Lit
 
     return isAuthorized
 
+
+def check_adminstration(permissions: list[str], op: Literal["write", "read"]):
+    authorized_list=[
+        create_authorized_item(RoleEnum.Analytics, op),
+        create_authorized_item(RoleEnum.DBA, op),
+        create_authorized_item(RoleEnum.Management, op),
+    ]
+    is_administrator = check_permission(authorized_list, permissions, op)
+    
+    return is_administrator
+
+
 def hash_password(password: str) -> str:
     hashed_password: bytes = bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12))
     return hashed_password.decode()
