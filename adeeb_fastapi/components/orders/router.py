@@ -360,6 +360,7 @@ async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, ca
                 req_body.is_updateable = None
                 req_body.status = None
                 req_body.user_id = None
+                req_body.reviewed = None
 
         # Ensuring Data Integrity
         ## If the order is aborted or marked as completed, then we make sure that is_updateable is False
