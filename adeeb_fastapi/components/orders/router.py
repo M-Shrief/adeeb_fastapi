@@ -15,7 +15,6 @@ from adeeb_fastapi.schemas import api as api_schemas
 from adeeb_fastapi.schemas.users import RoleEnum
 from adeeb_fastapi.schemas.orders import OrderStatusEnum
 from adeeb_fastapi.components.orders import schemas as component_schemas
-from adeeb_fastapi.components.orders.shared import check_order_ownership
 
 router = APIRouter(tags=["Orders"])
 
@@ -139,7 +138,7 @@ async def get_order_by_id(id: UUID, cache: Annotated[GlideClient, Depends(get_as
 
         is_administrator = auth_utils.check_adminstration(permissions, "read")
         if is_administrator is False: # if it's not admin
-            is_owner = check_order_ownership(order.id, payload)
+            is_owner = auth_utils.check_order_ownership(order.id, payload)
             if is_owner is False:
                 raise auth_utils.AuthorizationError
 
@@ -299,7 +298,7 @@ async def add_print(order_id: UUID, req_body: component_schemas.PrintItem_Req, c
 
         is_administrator = auth_utils.check_adminstration(permissions, "write")
         if is_administrator is False: # if it's not admin
-            is_owner = check_order_ownership(order.user_id, payload)
+            is_owner = auth_utils.check_order_ownership(order.user_id, payload)
             if is_owner is False:
                 raise auth_utils.AuthorizationError
             if order.is_updateable is False:
@@ -349,7 +348,7 @@ async def update_order(id: UUID, req_body: component_schemas.UpdateOrder_Req, ca
 
         is_administrator = auth_utils.check_adminstration(permissions, "write")
         if is_administrator is False: # if it's not admin
-            is_owner = check_order_ownership(existing_order.id, payload)
+            is_owner = auth_utils.check_order_ownership(existing_order.id, payload)
             if is_owner is False:
                 raise auth_utils.AuthorizationError
 
@@ -417,7 +416,7 @@ async def update_print(order_id: UUID, print_id: UUID, req_body: component_schem
 
         is_administrator = auth_utils.check_adminstration(permissions, "write")
         if is_administrator is False: # if it's not admin
-            is_owner = check_order_ownership(order.user_id, payload)
+            is_owner = auth_utils.check_order_ownership(order.user_id, payload)
             if is_owner is False:
                 raise auth_utils.AuthorizationError
             # If the user wants to update it, we need to check if the order is updateable first.
@@ -518,7 +517,7 @@ async def delete_print(order_id: UUID, print_id: UUID, cache: Annotated[GlideCli
 
         is_administrator = auth_utils.check_adminstration(permissions, "write")
         if is_administrator is False: # if it's not admin
-            is_owner = check_order_ownership(order.user_id, payload)
+            is_owner = auth_utils.check_order_ownership(order.user_id, payload)
             if is_owner is False:
                 raise auth_utils.AuthorizationError
             if order.is_updateable is False:

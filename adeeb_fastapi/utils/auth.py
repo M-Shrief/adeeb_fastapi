@@ -2,7 +2,7 @@ from fastapi import HTTPException, status, Request, Header
 import bcrypt
 import jwt
 from uuid import UUID
-from typing import Literal, Annotated
+from typing import Literal, Annotated, Any
 from datetime import UTC, datetime, timedelta
 ### 
 from adeeb_fastapi.utils.logger import logger
@@ -21,7 +21,7 @@ def create_jwt(id: UUID, username: str, roles: list[RoleEnum], exp_hours: int = 
 
     return token
 
-def verify_jwt(authorization_header: str):
+def verify_jwt(authorization_header: str, token_type: Literal["access", "refresh"] = "access"):
     """Verify JWT token with secret public key, also verifiy expirate date.
     
     Note: it doesn't validate permissions, as it'll give false negatives will be thought it's because of permissions but it's because token validity or expiration date.
@@ -110,6 +110,17 @@ def check_adminstration(permissions: list[str], op: Literal["write", "read"]):
     is_administrator = check_permission(authorized_list, permissions, op)
     
     return is_administrator
+
+def check_order_ownership(item_user_id: UUID | None, jwt_payload: dict[str, Any]):
+    if item_user_id is None: # if there's no user_id, then it's not a registered user, so no need to compare ids
+        return False
+    else: # check if it's the same user. if it's not,  it return False
+        user = jwt_payload["user"]
+        if str(item_user_id) != user["id"]:
+            return False
+        else: # if it's owned by the user
+            return True
+
 
 
 def hash_password(password: str) -> str:
