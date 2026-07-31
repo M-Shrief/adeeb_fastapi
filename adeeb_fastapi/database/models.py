@@ -41,7 +41,7 @@ class Adeeb(Timestamps, Base):
     __tablename__: str = "adeebs"
 
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), server_default=text("gen_random_uuid()"), primary_key=True, nullable=False)
-    name: Mapped[str | None] = mapped_column(String(length=256), unique=True, nullable=True)
+    name: Mapped[str] = mapped_column(String(length=256), unique=True, nullable=False)
     time_period: Mapped[TimePeriodEnum] = mapped_column(Enum(TimePeriodEnum, name="time_period_enum", native_enum=True), nullable=False)
     bio: Mapped[str | None] = mapped_column(String(length=1024), nullable=True)
     reviewed: Mapped[bool] = mapped_column(Boolean(), default=False)
@@ -55,7 +55,7 @@ class Poem(Timestamps, Base):
     __tablename__: str = "poems"
 
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), server_default=text("gen_random_uuid()"), primary_key=True, nullable=False)
-    intro: Mapped[str | None] = mapped_column(String(length=256), unique=True, nullable=True)
+    intro: Mapped[str] = mapped_column(String(length=256), unique=True, nullable=False)
     reviewed: Mapped[bool] = mapped_column(Boolean(), default=False)
     # instead of making a custom type for verses, 
     # we'll use an array and add another field to know if it's couplet or not
@@ -112,7 +112,6 @@ class Order(Timestamps, Base):
     reviewed: Mapped[bool] = mapped_column(Boolean(), default=False)
     delivery_schedule: Mapped[datetime | None] = mapped_column(DateTime(), nullable=True, default=None)
     is_updateable: Mapped[bool] = mapped_column(Boolean(), default=True)
-    # delete this fields, and replace them with status as ENUM("In progress", "Aborted", "Completed")
     status: Mapped[OrderStatusEnum] = mapped_column(Enum(OrderStatusEnum, name="order_status_enum", native_enum=True), nullable=False, default=OrderStatusEnum.IN_PROGRESS)
 
     ### Relationships
