@@ -35,7 +35,7 @@ class CreateOneOrder_Req(BaseModel):
     name: orders.NameField
     phone: orders.PhoneField
     address: orders.AddressField
-    delivery_schedule: orders.DeliveryScheduleField_Optional
+    # delivery_schedule: orders.DeliveryScheduleField_Optional
     ## Relations
     user_id: general.UserIDField_Optional
 
