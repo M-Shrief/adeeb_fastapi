@@ -6,54 +6,35 @@ from typing import Literal, Annotated, Any
 from datetime import UTC, datetime, timedelta
 ### 
 from adeeb_fastapi.utils.logger import logger
-from adeeb_fastapi.config import access_jwt_config, refresh_jwt_config
+from adeeb_fastapi.config import access_jwt_config
 from adeeb_fastapi.schemas.users import RoleEnum
 
 AuthorizationError = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
 
-def create_jwt(id: UUID, username: str, roles: list[RoleEnum], exp_hours: int | None = None, token_type: Literal["access", "refresh"] = "access")->str:
-    if token_type == "access":
-        if exp_hours is None:
-            exp_hours = 2
-        payload = create_jwt_payload(id, username, roles, exp_hours)
-        token = jwt.encode(
-            payload=payload,
-            key=access_jwt_config.private_key,
-            algorithm="RS256"
-            )
-    else: 
-        if exp_hours is None:
-            exp_hours = 72
-        payload = create_jwt_payload(id, username, roles, exp_hours)
-        token = jwt.encode(
-            payload=payload,
-            key=refresh_jwt_config.private_key,
-            algorithm="RS256"
-            )
+def create_jwt(id: UUID, username: str, roles: list[RoleEnum], exp_hours: int | None = None)->str:
+    if exp_hours is None:
+        exp_hours = 2
+    payload = create_jwt_payload(id, username, roles, exp_hours)
+    token = jwt.encode(
+        payload=payload,
+        key=access_jwt_config.private_key,
+        algorithm="RS256"
+        )
 
     return token
 
-def verify_jwt(authorization_header: str, token_type: Literal["access", "refresh"] = "access"):
+def verify_jwt(authorization_header: str):
     """Verify JWT token with secret public key, also verifiy expirate date.
     
     Note: it doesn't validate permissions, as it'll give false negatives will be thought it's because of permissions but it's because token validity or expiration date.
     """
     token = authorization_header[7:] # Removes: "Bearer "
     try:
-        # Decode JWT token
-        if token_type == "access": 
-            payload = jwt.decode(
-                jwt=token,
-                key=access_jwt_config.public_key,
-                algorithms=["RS256"]
-            )
-        else:
-            payload = jwt.decode(
-                jwt=token,
-                key=refresh_jwt_config.public_key,
-                algorithms=["RS256"]
-            )
-
+        payload = jwt.decode(
+            jwt=token,
+            key=access_jwt_config.public_key,
+            algorithms=["RS256"]
+        )
         return payload, True
 
     except jwt.exceptions.InvalidTokenError as e: # that's the base error for decode()
