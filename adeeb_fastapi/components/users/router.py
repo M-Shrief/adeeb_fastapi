@@ -1,13 +1,14 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Header, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, exc, delete, func
+from sqlalchemy import bindparam, select, exc, delete, func
+from sqlalchemy.orm.attributes import flag_modified
 from typing import Annotated, Any, Literal
 from uuid import UUID
 ###
 from adeeb_fastapi.utils.logger import logger
 from adeeb_fastapi.utils import auth as auth_utils
 from adeeb_fastapi.database.index import get_async_db
-from adeeb_fastapi.database.models import User as UserModel
+from adeeb_fastapi.database.models import User as UserModel, roles_enum
 from adeeb_fastapi.schemas import users as users_schemas, api as api_schemas
 from adeeb_fastapi.components.users import schemas as component_schemas
 
@@ -322,6 +323,54 @@ async def update_user_by_id(id: UUID, new_data: component_schemas.UpdateUserById
     except Exception as e:
         logger.error("Update User Error", err=e)
         detail_msg = "An error occurred while updating the user, try again later."
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
+
+@router.put(
+    "/users/{id}/ban",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def ban_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+    try:
+        if Authorization is None:
+            raise auth_utils.AuthorizationError
+
+        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
+        if verified is False or  payload is None:
+            raise auth_utils.AuthorizationError
+        
+
+        permissions: list[str] | None = payload.get("permissions")
+        if permissions is None:
+            raise auth_utils.AuthorizationError
+
+        is_administrator = auth_utils.check_adminstration(permissions, "write")
+        if is_administrator is False:
+            raise auth_utils.AuthorizationError
+
+        stmt = select(UserModel).where(UserModel.id == id) 
+        res =  await db.execute(statement=stmt)
+        existing_user = res.scalar()
+
+        if existing_user: # User exist in DB
+            try: # Clean roles from duplicates, and check if Banned role already exists
+                _ = existing_user.roles.index(users_schemas.RoleEnum.Banned)
+            except ValueError:
+                existing_user.roles.append(users_schemas.RoleEnum.Banned)
+                flag_modified(existing_user, "roles")
+
+            await db.commit()
+            return
+        else:
+            # User doesn't exist
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User doesn't exists")
+        
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not found!")
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error("Ban User Error", err=e)
+        detail_msg = "An error occurred while banning the user, try again later."
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
 
 
