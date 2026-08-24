@@ -33,13 +33,7 @@ async def get_users(queries: Annotated[api_schemas.SharedQueriesForGetManyReques
         if permissions is None:
             raise auth_utils.AuthorizationError
 
-        authorized_list=[
-            auth_utils.create_authorized_item(users_schemas.RoleEnum.Analytics, "read"),
-            auth_utils.create_authorized_item(users_schemas.RoleEnum.DBA, "read"),
-            auth_utils.create_authorized_item(users_schemas.RoleEnum.Management, "read"),
-        ]
-
-        is_administrator = auth_utils.check_permission(authorized_list, permissions, "read")
+        is_administrator = auth_utils.check_adminstration(permissions, "read")
         if is_administrator is False:
             raise auth_utils.AuthorizationError
 
@@ -126,14 +120,8 @@ async def get_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async
         if permissions is None:
             raise auth_utils.AuthorizationError
 
-        authorized_list=[
-            auth_utils.create_authorized_item(users_schemas.RoleEnum.Management, "read"),
-            auth_utils.create_authorized_item(users_schemas.RoleEnum.DBA, "read"),
-            auth_utils.create_authorized_item(users_schemas.RoleEnum.Analytics, "read"),
-        ]
-
-        is_permitted = auth_utils.check_permission(authorized_list, permissions, "read")
-        if is_permitted is False:
+        is_administrator = auth_utils.check_adminstration(permissions, "read")
+        if is_administrator is False:
             raise auth_utils.AuthorizationError
 
 
@@ -296,14 +284,8 @@ async def update_user_by_id(id: UUID, new_data: component_schemas.UpdateUserById
         if permissions is None:
             raise auth_utils.AuthorizationError
 
-        authorized_list=[
-            auth_utils.create_authorized_item(users_schemas.RoleEnum.Management, "write"),
-            auth_utils.create_authorized_item(users_schemas.RoleEnum.DBA, "write"),
-            auth_utils.create_authorized_item(users_schemas.RoleEnum.Analytics, "write"),
-        ]
-
-        is_permitted = auth_utils.check_permission(authorized_list, permissions, "write")
-        if is_permitted is False:
+        is_administrator = auth_utils.check_adminstration(permissions, "write")
+        if is_administrator is False:
             raise auth_utils.AuthorizationError
 
 
@@ -402,14 +384,8 @@ async def delete_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_as
         if permissions is None:
             raise auth_utils.AuthorizationError
 
-        authorized_list=[
-            auth_utils.create_authorized_item(users_schemas.RoleEnum.Management, "write"),
-            auth_utils.create_authorized_item(users_schemas.RoleEnum.DBA, "write"),
-            auth_utils.create_authorized_item(users_schemas.RoleEnum.Analytics, "write"),
-        ]
-
-        is_permitted = auth_utils.check_permission(authorized_list, permissions, "write")
-        if is_permitted is False:
+        is_administrator = auth_utils.check_adminstration(permissions, "write")
+        if is_administrator is False:
             raise auth_utils.AuthorizationError
 
         
