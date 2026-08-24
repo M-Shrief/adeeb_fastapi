@@ -19,9 +19,13 @@ class Timestamps():
     created_at: Mapped[datetime] = mapped_column(DateTime(), server_default=text("CURRENT_TIMESTAMP"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(), server_default=text("CURRENT_TIMESTAMP"), onupdate=text("CURRENT_TIMESTAMP"))
 
+# from sqlalchemy.dialects import sqlite as sqlite_dialect
+# class IdField():
+#     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True).with_variant(sqlite_dialect.VARCHAR, "sqlite"), server_default=text("gen_random_uuid()"), primary_key=True, nullable=False)
+#    reviewed: Mapped[bool] = mapped_column(Boolean().with_variant(sqlite_dialect.INTEGER, "sqlite"),, default=False)
 
 # Enums
-roles_enum = Enum(RoleEnum.Analytics, RoleEnum.Normal, RoleEnum.DBA, RoleEnum.Management, RoleEnum.BANNED, name="roles_enum")
+roles_enum = Enum(RoleEnum.Analytics, RoleEnum.Normal, RoleEnum.DBA, RoleEnum.Management, RoleEnum.Banned, name="roles_enum")
 time_period_enum = Enum(TimePeriodEnum.JAHLI, TimePeriodEnum.AMOEI, TimePeriodEnum.ABASI, TimePeriodEnum.ANDALUSI, TimePeriodEnum.TURKISH_ERA, TimePeriodEnum.MODERN, TimePeriodEnum.UNDEFINED, name="time_period_enum")
 outfit_type_enum = Enum(OutfitTypeEnum.TSHIRT_7, OutfitTypeEnum.TSHIRT_HALF, OutfitTypeEnum.TSHIRT_POLO,OutfitTypeEnum.SWEETSHIRT, OutfitTypeEnum.JACKET, OutfitTypeEnum.PULLOVER, name="outfit_type_enum")
 order_status_enum = Enum(OrderStatusEnum.IN_PROGRESS, OrderStatusEnum.COMPLETED, OrderStatusEnum.ABORTED, name="order_status_enum")
@@ -35,6 +39,13 @@ class User(Timestamps, Base):
     roles: Mapped[list[RoleEnum]] = mapped_column(ARRAY(Enum(RoleEnum, name="roles_enum", native_enum=True)), nullable=False, default=[RoleEnum.Normal])
 
     orders: Mapped[list[Order]] = relationship(back_populates="user")
+
+class UserRefreshToken(Timestamps, Base):
+    __tablename__: str = "users_refresh_tokens"
+
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), primary_key=True, nullable=False)
+    # user: Mapped[Adeeb] = relationship()
+    token_hash: Mapped[str] = mapped_column(String(length=512), nullable=False)
 
 
 class Adeeb(Timestamps, Base):

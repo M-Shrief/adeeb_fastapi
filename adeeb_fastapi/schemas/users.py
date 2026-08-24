@@ -11,7 +11,7 @@ PasswordField = Annotated[str, Field(min_length=8, max_length=256)]
 PasswordField_Optional = Annotated[str | None, Field(default=None, min_length=8, max_length=256)]
 
 class RoleEnum(str, Enum):
-    BANNED = "Banned"
+    Banned = "Banned"
     Normal = "Normal"
     DBA = 'DBA'
     Analytics = 'Analytics'

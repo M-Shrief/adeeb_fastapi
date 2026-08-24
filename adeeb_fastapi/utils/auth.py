@@ -6,18 +6,30 @@ from typing import Literal, Annotated, Any
 from datetime import UTC, datetime, timedelta
 ### 
 from adeeb_fastapi.utils.logger import logger
-from adeeb_fastapi.config import jwt_config
+from adeeb_fastapi.config import access_jwt_config, refresh_jwt_config
 from adeeb_fastapi.schemas.users import RoleEnum
 
 AuthorizationError = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authorized")
 
-def create_jwt(id: UUID, username: str, roles: list[RoleEnum], exp_hours: int = 2)->str:
-    payload = create_jwt_payload(id, username, roles, exp_hours)
-    token: str = jwt.encode(
-        payload=payload,
-        key=jwt_config.private_key,
-        algorithm="RS256"
-        )
+def create_jwt(id: UUID, username: str, roles: list[RoleEnum], exp_hours: int | None = None, token_type: Literal["access", "refresh"] = "access")->str:
+    if token_type == "access":
+        if exp_hours is None:
+            exp_hours = 2
+        payload = create_jwt_payload(id, username, roles, exp_hours)
+        token = jwt.encode(
+            payload=payload,
+            key=access_jwt_config.private_key,
+            algorithm="RS256"
+            )
+    else: 
+        if exp_hours is None:
+            exp_hours = 72
+        payload = create_jwt_payload(id, username, roles, exp_hours)
+        token = jwt.encode(
+            payload=payload,
+            key=refresh_jwt_config.private_key,
+            algorithm="RS256"
+            )
 
     return token
 
@@ -29,10 +41,17 @@ def verify_jwt(authorization_header: str, token_type: Literal["access", "refresh
     token = authorization_header[7:] # Removes: "Bearer "
     try:
         # Decode JWT token
-        payload = jwt.decode(
-            jwt=token,
-            key=jwt_config.public_key,
-            algorithms=["RS256"]
+        if token_type == "access": 
+            payload = jwt.decode(
+                jwt=token,
+                key=access_jwt_config.public_key,
+                algorithms=["RS256"]
+            )
+        else:
+            payload = jwt.decode(
+                jwt=token,
+                key=refresh_jwt_config.public_key,
+                algorithms=["RS256"]
             )
 
         return payload, True
@@ -81,10 +100,10 @@ def check_permission(authorized_list: list[str], permissions: list[str], op: Lit
     is_banned = False
 
     for perm in permissions:
-        if op == "write" and perm == RoleEnum.BANNED + WRITE_PERM:
+        if op == "write" and perm == RoleEnum.Banned + WRITE_PERM:
             is_banned = True
             break
-        elif op == "read" and perm == RoleEnum.BANNED + READ_PERM:
+        elif op == "read" and perm == RoleEnum.Banned + READ_PERM:
             is_banned = True
             break
         else:
