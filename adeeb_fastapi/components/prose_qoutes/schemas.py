@@ -26,7 +26,7 @@ class CreateOneProseQoute_Res(BaseModel):
 
 class CreateManyProseQoute_Res(BaseModel):
     created_items: Annotated[list[CreateOneProseQoute_Res], Field(default=[])]
-    invalid_items: Annotated[list[api.InvalidDataFieldType[CreateOneProseQoute_Req]], Field(default=[])]
+    invalid_items: Annotated[list[api.InvalidDataFieldType], Field(default=[])]
     success_count: Annotated[int, Field(default=0)]
 
 class UpdateProseQoute_Req(BaseModel):

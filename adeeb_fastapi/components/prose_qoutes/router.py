@@ -92,9 +92,9 @@ async def create_prose_qoute(prose_qoute: component_schemas.CreateOneProseQoute_
 async def create_prose_qoutes(data: list[component_schemas.CreateOneProseQoute_Req], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
         created_items: list[component_schemas.CreateOneProseQoute_Res] = []
-        invalid_items: list[api_schemas.InvalidDataFieldType[component_schemas.CreateOneProseQoute_Req]] = []
+        invalid_items: list[api_schemas.InvalidDataFieldType] = []
 
-        for item in data:
+        for index, item in enumerate(data):
             try:
                 new_prose_qoute = ProseQouteModel(**item.model_dump())
                 db.add(new_prose_qoute)
@@ -109,8 +109,8 @@ async def create_prose_qoutes(data: list[component_schemas.CreateOneProseQoute_R
                 else:
                     msg = "An error occurred while creating a prose_qoute, try again later."                
 
-                invalid_items.append(api_schemas.InvalidDataFieldType[component_schemas.CreateOneProseQoute_Req](
-                    item=item,
+                invalid_items.append(api_schemas.InvalidDataFieldType(
+                    item_index=index,
                     message=msg
                     ))
 
