@@ -109,9 +109,9 @@ async def create_adeeb(adeeb: component_schemas.CreateOneAdeeb_Req, db: Annotate
 async def create_adeebs(data: list[component_schemas.CreateOneAdeeb_Req], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
         created_items: list[component_schemas.CreateOneAdeeb_Res] = []
-        invalid_items: list[api_schemas.InvalidDataFieldType[component_schemas.CreateOneAdeeb_Req]] = []
+        invalid_items: list[api_schemas.InvalidDataFieldType] = []
 
-        for item in data:
+        for index, item in enumerate(data):
             try:
                 new_adeeb = AdeebModel(**item.model_dump())
                 db.add(new_adeeb)
@@ -120,14 +120,13 @@ async def create_adeebs(data: list[component_schemas.CreateOneAdeeb_Req], db: An
 
                 created_items.append(component_schemas.CreateOneAdeeb_Res.model_validate(new_adeeb, from_attributes=True))
             except Exception as e:
-                logger.error("Error occurred while creating a adeeb", error=e)
                 if "psycopg.errors.UniqueViolation" in str(e):
                     msg = "adeeb does already exists"
                 else:
                     msg = "An error occurred while creating a adeeb, try again later."                
 
-                invalid_items.append(api_schemas.InvalidDataFieldType[component_schemas.CreateOneAdeeb_Req](
-                    item=item,
+                invalid_items.append(api_schemas.InvalidDataFieldType(
+                    item_index=index,
                     message=msg
                     ))
 
