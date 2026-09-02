@@ -79,6 +79,9 @@ async def create_prose_qoute(prose_qoute: component_schemas.CreateOneProseQoute_
         if "psycopg.errors.UniqueViolation" in str(e):
             detail_msg = "prose_qoute does already exists"
             raise HTTPException(status.HTTP_409_CONFLICT, detail=detail_msg)
+        elif "psycopg.errors.ForeignKeyViolation" in str(e): # (SQLSTATE 23503)
+            msg = "foreign key error"
+            raise HTTPException(status.HTTP_409_CONFLICT, detail=msg)
         else:
             detail_msg = "An error occurred while creating a prose_qoute, try again later."
             raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
@@ -106,6 +109,8 @@ async def create_prose_qoutes(data: list[component_schemas.CreateOneProseQoute_R
                 logger.error("Error occurred while creating a prose_qoute", error=e)
                 if "psycopg.errors.UniqueViolation" in str(e):
                     msg = "prose_qoute does already exists"
+                elif "psycopg.errors.ForeignKeyViolation" in str(e): # (SQLSTATE 23503)
+                    msg = "foreign key error"
                 else:
                     msg = "An error occurred while creating a prose_qoute, try again later."                
 

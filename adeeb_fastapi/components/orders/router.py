@@ -197,11 +197,14 @@ async def create_order(order_data: component_schemas.CreateOneOrder_Req, db: Ann
         logger.error("Error occurred while creating a order", error=e)
         await db.rollback()
         if "psycopg.errors.UniqueViolation" in str(e):
-            detail_msg = "order does already exists"
-            raise HTTPException(status.HTTP_409_CONFLICT, detail=detail_msg)
+            msg = "order does already exists"
+            raise HTTPException(status.HTTP_409_CONFLICT, detail=msg)
+        elif "psycopg.errors.ForeignKeyViolation" in str(e): # (SQLSTATE 23503)
+            msg = "foreign key error"
+            raise HTTPException(status.HTTP_409_CONFLICT, detail=msg)
         else:
-            detail_msg = "An error occurred while creating a order, try again later."
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
+            msg = "An error occurred while creating a order, try again later."
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=msg)
 
 @router.post(
     path="/orders/many",
@@ -253,6 +256,8 @@ async def create_orders(data: list[component_schemas.CreateOneOrder_Req], db: An
                 logger.error("Error occurred while creating a order", error=e)
                 if "psycopg.errors.UniqueViolation" in str(e):
                     msg = "order does already exists"
+                elif "psycopg.errors.ForeignKeyViolation" in str(e): # (SQLSTATE 23503)
+                    msg = "foreign key error"
                 else:
                     msg = "An error occurred while creating a order, try again later."                
 

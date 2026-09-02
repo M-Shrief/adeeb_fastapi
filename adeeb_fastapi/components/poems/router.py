@@ -94,11 +94,14 @@ async def create_poem(poem: component_schemas.CreateOnePoem_Req, db: Annotated[A
         logger.error("Error occurred while creating a poem", error=e)
         await db.rollback()
         if "psycopg.errors.UniqueViolation" in str(e):
-            detail_msg = "poem does already exists"
-            raise HTTPException(status.HTTP_409_CONFLICT, detail=detail_msg)
+            msg = "poem does already exists"
+            raise HTTPException(status.HTTP_409_CONFLICT, detail=msg)
+        elif "psycopg.errors.ForeignKeyViolation" in str(e): # (SQLSTATE 23503)
+            msg = "foreign key error"
+            raise HTTPException(status.HTTP_409_CONFLICT, detail=msg)
         else:
-            detail_msg = "An error occurred while creating a poem, try again later."
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
+            msg = "An error occurred while creating a poem, try again later."
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=msg)
 
 @router.post(
     path="/poems/many",
@@ -123,6 +126,8 @@ async def create_poems(data: list[component_schemas.CreateOnePoem_Req], db: Anno
                 logger.error("Error occurred while creating a poem", error=e)
                 if "psycopg.errors.UniqueViolation" in str(e):
                     msg = "poem does already exists"
+                elif "psycopg.errors.ForeignKeyViolation" in str(e): # (SQLSTATE 23503)
+                    msg = "foreign key error"
                 else:
                     msg = "An error occurred while creating a poem, try again later."                
 
