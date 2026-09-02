@@ -219,9 +219,9 @@ async def create_orders(data: list[component_schemas.CreateOneOrder_Req], db: An
             raise auth_utils.AuthorizationError
 
         created_items: list[component_schemas.CreateOneOrder_Res] = []
-        invalid_items: list[api_schemas.InvalidDataFieldType[component_schemas.CreateOneOrder_Req]] = []
+        invalid_items: list[api_schemas.InvalidDataFieldType] = []
 
-        for item in data:
+        for index, item in enumerate(data):
             try:
                 new_order = OrderModel(
                     name=item.name,
@@ -256,8 +256,8 @@ async def create_orders(data: list[component_schemas.CreateOneOrder_Req], db: An
                 else:
                     msg = "An error occurred while creating a order, try again later."                
 
-                invalid_items.append(api_schemas.InvalidDataFieldType[component_schemas.CreateOneOrder_Req](
-                    item=item,
+                invalid_items.append(api_schemas.InvalidDataFieldType(
+                    item_index=index,
                     message=msg
                     ))
 
