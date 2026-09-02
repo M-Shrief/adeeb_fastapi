@@ -92,9 +92,9 @@ async def create_one_chosen_verses(chosen_verses: component_schemas.CreateOneCho
 async def create_many_chosen_verses(data: list[component_schemas.CreateOneChosenVerses_Req], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
         created_items: list[component_schemas.CreateOneChosenVerses_Res] = []
-        invalid_items: list[api_schemas.InvalidDataFieldType[component_schemas.CreateOneChosenVerses_Req]] = []
+        invalid_items: list[api_schemas.InvalidDataFieldType] = []
 
-        for item in data:
+        for index, item in enumerate(data):
             try:
                 new_chosen_verses = ChosenVersesModel(**item.model_dump())
                 db.add(new_chosen_verses)
@@ -109,8 +109,8 @@ async def create_many_chosen_verses(data: list[component_schemas.CreateOneChosen
                 else:
                     msg = "An error occurred while creating a chosen_verses, try again later."                
 
-                invalid_items.append(api_schemas.InvalidDataFieldType[component_schemas.CreateOneChosenVerses_Req](
-                    item=item,
+                invalid_items.append(api_schemas.InvalidDataFieldType(
+                    item_index=index,
                     message=msg
                     ))
 

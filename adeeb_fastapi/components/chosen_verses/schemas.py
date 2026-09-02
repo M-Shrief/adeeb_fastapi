@@ -28,7 +28,7 @@ class CreateOneChosenVerses_Res(BaseModel):
 
 class CreateManyChosenVerses_Res(BaseModel):
     created_items: Annotated[list[CreateOneChosenVerses_Res], Field(default=[])]
-    invalid_items: Annotated[list[api.InvalidDataFieldType[CreateOneChosenVerses_Req]], Field(default=[])]
+    invalid_items: Annotated[list[api.InvalidDataFieldType], Field(default=[])]
     success_count: Annotated[int, Field(default=0)]
 
 class UpdateChosenVerses_Req(BaseModel):
