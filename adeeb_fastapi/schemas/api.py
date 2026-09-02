@@ -29,9 +29,14 @@ class GetAll_Res(BaseModel, Generic[DataType]):
     offset: Annotated[int, Field()]
     limit: Annotated[int, Field()]
 
-class InvalidDataFieldType(TypedDict, Generic[DataType]):
+class CreateMany_Res(BaseModel, Generic[DataType]):
+    created_items: Annotated[list[DataType], Field(default=[])]
+    invalid_items: Annotated[list[InvalidDataFieldType], Field(default=[])]
+    success_count: Annotated[int, Field(default=0)]
+
+class InvalidDataFieldType(TypedDict):
     """Invalid data field is used in CreateMany's Response scehmas"""
-    item: DataType
+    item_index: int
     message: str
 
 class Update_Res(BaseModel):
