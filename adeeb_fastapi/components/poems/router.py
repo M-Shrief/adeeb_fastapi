@@ -109,9 +109,9 @@ async def create_poem(poem: component_schemas.CreateOnePoem_Req, db: Annotated[A
 async def create_poems(data: list[component_schemas.CreateOnePoem_Req], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
         created_items: list[component_schemas.CreateOnePoem_Res] = []
-        invalid_items: list[api_schemas.InvalidDataFieldType[component_schemas.CreateOnePoem_Req]] = []
+        invalid_items: list[api_schemas.InvalidDataFieldType] = []
 
-        for item in data:
+        for index, item in enumerate(data):
             try:
                 new_poem = PoemModel(**item.model_dump())
                 db.add(new_poem)
@@ -126,8 +126,8 @@ async def create_poems(data: list[component_schemas.CreateOnePoem_Req], db: Anno
                 else:
                     msg = "An error occurred while creating a poem, try again later."                
 
-                invalid_items.append(api_schemas.InvalidDataFieldType[component_schemas.CreateOnePoem_Req](
-                    item=item,
+                invalid_items.append(api_schemas.InvalidDataFieldType(
+                    item_index=index,
                     message=msg
                     ))
 

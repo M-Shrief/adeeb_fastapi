@@ -27,7 +27,7 @@ class CreateOnePoem_Res(BaseModel):
 
 class CreateManyPoem_Res(BaseModel):
     created_items: Annotated[list[CreateOnePoem_Res], Field(default=[])]
-    invalid_items: Annotated[list[api.InvalidDataFieldType[CreateOnePoem_Req]], Field(default=[])]
+    invalid_items: Annotated[list[api.InvalidDataFieldType], Field(default=[])]
     success_count: Annotated[int, Field(default=0)]
 
 class UpdatePoem_Req(BaseModel):
