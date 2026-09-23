@@ -7,29 +7,28 @@ from contextlib import asynccontextmanager
 ###
 from adeeb_fastapi.database.index import async_engine
 from adeeb_fastapi.database.models import Base
-# Components
 from adeeb_fastapi.components.users.router import router as users_router
 from adeeb_fastapi.components.orders.router import router as orders_router
 from adeeb_fastapi.components.adeebs.router import router as adeebs_router
 from adeeb_fastapi.components.poems.router import router as poems_router
 from adeeb_fastapi.components.chosen_verses.router import router as chosen_verses_router
 from adeeb_fastapi.components.prose_qoutes.router import router as prose_qoutes_router
-# Schemas
 from adeeb_fastapi.schemas import api  as api_schemas
-# Utils
 from adeeb_fastapi.utils import rate_limiter
 from adeeb_fastapi.utils.auth import write_ops_auth
 from adeeb_fastapi.utils.middlewares import SecurityHeadersMiddleware
+from adeeb_fastapi.config import app_config
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with async_engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
+    if app_config.env != "test":
+        async with async_engine.begin() as connection:
+            await connection.run_sync(Base.metadata.create_all)
     yield
 
 
 app = FastAPI(
-   lifespan=lifespan,
+    lifespan=lifespan,
     title="Adeeb FastAPI",
     description="An Iteration for Adeeb's RESTful API using Python, FastAPI and Postgres.",
     summary="An Iteration for Adeeb's RESTful API using Python",

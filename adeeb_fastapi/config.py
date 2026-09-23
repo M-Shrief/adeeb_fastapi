@@ -1,6 +1,18 @@
 from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+class AppConfig(BaseSettings):
+    """Note: Use .model_validate({}) to prevent Basedpyright errros when initializing the class"""
+    model_config = SettingsConfigDict(
+        env_file='.env',  # path of .env
+        env_file_encoding='utf-8',
+        env_prefix="APP_", #prefix for everey field.
+        extra="ignore" # ignore other ENV so that we can modularize its use.
+    )
+    env: str
+
+app_config = AppConfig.model_validate({})
+
 
 class DatabaseConfig(BaseSettings):
     """Note: Use .model_validate({}) to prevent Basedpyright errros when initializing the class"""
