@@ -1,18 +1,15 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, exc, delete, func
-from typing import Annotated, Literal
+from typing import Annotated
 from uuid import UUID
 from glide import GlideClient
 ###
+from adeeb_fastapi.utils.errors import APIError
 from adeeb_fastapi.utils.logger import logger
 from adeeb_fastapi.database.index import get_async_db
-from adeeb_fastapi.database.models import Poem as PoemModel
-from adeeb_fastapi.database import joins
-from adeeb_fastapi.cache.index import get_async_cache, cache_get, cache_set, format_key_by_id
+from adeeb_fastapi.cache.index import get_async_cache
 from adeeb_fastapi.schemas import poems as poems_schemas, api as api_schemas
-from adeeb_fastapi.components.poems import schemas as component_schemas
-
+from adeeb_fastapi.components.poems import schemas as component_schemas, service
 
 
 router = APIRouter(tags=["Poems"])
@@ -25,18 +22,14 @@ router = APIRouter(tags=["Poems"])
 )
 async def get_poems(queries: Annotated[api_schemas.SharedQueriesForGetManyRequests, Query()], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try: #
-        stmt = select(PoemModel, func.count().over().label('total')).offset(queries.offset).limit(queries.limit)
-
-        resp  = await db.execute(stmt)
-        rows = resp.all()
-
-        total_count: int | Literal[0] = rows[0].total if rows else 0 
-        poems =  [poems_schemas.DescriptiveSchema.model_validate(row[0], from_attributes=True) for row in list(rows)]
-
-        return api_schemas.GetAll_Res[poems_schemas.DescriptiveSchema](data=poems, total_count=total_count, limit=queries.limit, offset=queries.offset)
-
+        response_result = await service.get_all(queries, db)
+        return response_result
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error when getting poems", error=e)
+        logger.error("Error in GET /poems", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 @router.get(
@@ -47,31 +40,16 @@ async def get_poems(queries: Annotated[api_schemas.SharedQueriesForGetManyReques
 )
 async def get_poem_by_id(id: UUID, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        cache_key = format_key_by_id("poem", id)
-        cache_res = await cache_get(cache_key, cache)
-
-        if cache_res is not None:
-            poem = component_schemas.GetPoem_Res.model_validate(cache_res, from_attributes=True)
-        else:
-            stmt = select(PoemModel).where(PoemModel.id == id)
-            stmt = stmt.options(joins.adeebs_to_poems).options(joins.chosen_verses_to_poem)
-            res = await db.scalars(statement=stmt)
-            poem = res.unique().one()
-
-            poem = component_schemas.GetPoem_Res.model_validate(poem, from_attributes=True)
-
-            await cache_set(
-                key=cache_key,
-                value=poem,
-                client=cache
-            )
-
+        poem = await service.get_one_by_id(id, cache, db)
         return poem
-
-    except exc.NoResultFound:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="poem is not found!")
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_404_NOT_FOUND:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="adeeb is not found")
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error when getting a poem by id", error=e)
+        logger.error("Error in GET /poems/{id}", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 
@@ -83,25 +61,17 @@ async def get_poem_by_id(id: UUID, cache: Annotated[GlideClient, Depends(get_asy
 )
 async def create_poem(poem: component_schemas.CreateOnePoem_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        new_poem = PoemModel(**poem.model_dump())
-        db.add(new_poem)
-        await db.commit()
-        await db.refresh(new_poem)
-
+        new_poem = await service.create_one(poem, db)
         return new_poem
-
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_409_CONFLICT:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=e.message)
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error occurred while creating a poem", error=e)
-        await db.rollback()
-        if "psycopg.errors.UniqueViolation" in str(e):
-            msg = "poem does already exists"
-            raise HTTPException(status.HTTP_409_CONFLICT, detail=msg)
-        elif "psycopg.errors.ForeignKeyViolation" in str(e): # (SQLSTATE 23503)
-            msg = "foreign key error"
-            raise HTTPException(status.HTTP_409_CONFLICT, detail=msg)
-        else:
-            msg = "An error occurred while creating a poem, try again later."
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=msg)
+        logger.error("Error in POST /poems", error=e)
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="unknown error, try agian later")
 
 @router.post(
     path="/poems/many",
@@ -111,69 +81,32 @@ async def create_poem(poem: component_schemas.CreateOnePoem_Req, db: Annotated[A
 )
 async def create_poems(data: list[component_schemas.CreateOnePoem_Req], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        created_items: list[component_schemas.CreateOnePoem_Res] = []
-        invalid_items: list[api_schemas.InvalidDataFieldType] = []
-
-        for index, item in enumerate(data):
-            try:
-                new_poem = PoemModel(**item.model_dump())
-                db.add(new_poem)
-                await db.commit()
-                await db.refresh(new_poem)
-
-                created_items.append(component_schemas.CreateOnePoem_Res.model_validate(new_poem, from_attributes=True))
-            except Exception as e:
-                logger.error("Error occurred while creating a poem", error=e)
-                if "psycopg.errors.UniqueViolation" in str(e):
-                    msg = "poem does already exists"
-                elif "psycopg.errors.ForeignKeyViolation" in str(e): # (SQLSTATE 23503)
-                    msg = "foreign key error"
-                else:
-                    msg = "An error occurred while creating a poem, try again later."                
-
-                invalid_items.append(api_schemas.InvalidDataFieldType(
-                    item_index=index,
-                    message=msg
-                    ))
-
-        return component_schemas.CreateManyPoem_Res(
-            created_items=created_items,
-            success_count=len(created_items),
-            invalid_items=invalid_items
-        )
-
-
+        result = await service.create_many(data, db)
+        return result 
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        detail_msg = "An error occurred while creating many poem entities, try again later."
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
+        logger.error("Error in POST /poems/many", error=e)
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 @router.put(
     "/poems/{id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def update_poem(id: UUID, req_body: component_schemas.UpdatePoem_Req, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)]):
+async def update_poem(id: UUID, data: component_schemas.UpdatePoem_Req, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        stmt = select(PoemModel).where(PoemModel.id == id)
-        res = await db.scalars(statement=stmt)    
-        existing_poem = res.unique().one()
-
-        new_poem_data = req_body.model_dump(exclude_none=True)  # Exclude None fields from the request body
-
-        for key, value in new_poem_data.items():
-            setattr(existing_poem, key, value)
-
-        await db.commit()
-
-        # Delete from cache after update to prevent showing old data
-        cache_key = format_key_by_id("poem", id)
-        _ = await cache.delete([cache_key])
- 
+        await service.update_one(id, data, cache, db)
         return 
-        
-    except exc.NoResultFound:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poem is not found!")
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_404_NOT_FOUND:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="adeeb is not found")
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error when updating poem", error=e)
+        logger.error("Error in PUT /poems/{id}", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 @router.delete(
@@ -182,17 +115,14 @@ async def update_poem(id: UUID, req_body: component_schemas.UpdatePoem_Req, cach
 )
 async def delete_poem(id: UUID, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        stmt = delete(PoemModel).where(PoemModel.id == id)
-        _ = await db.execute(statement=stmt)
-        await db.commit()
-
-       # Delete from cache after update to prevent showing old data
-        cache_key = format_key_by_id("poem", id)
-        _ = await cache.delete([cache_key])
- 
+        await service.delete_one(id, cache, db)
         return
-    except exc.NoResultFound:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poem is not found!")
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_409_CONFLICT:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="poem is referenced in other places")
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error when deleting poem", error=e)
+        logger.error("Error in DELETE /poems/{id}", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
