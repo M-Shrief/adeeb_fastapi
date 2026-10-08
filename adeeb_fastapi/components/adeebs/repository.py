@@ -135,11 +135,12 @@ async def update_one(id: UUID, data: component_schemas.UpdateAdeeb_Req, cache: G
  
         return  
 
-    except exc.NoResultFound:
-        raise APIError(status_code=status.HTTP_404_NOT_FOUND, caused_in="repository")
     except Exception as e:
-        logger.error("Error in PUST /adeebs/{id}", error=e)
-        raise APIError(status_code=status.HTTP_400_BAD_REQUEST, caused_in="repository")
+        if "psycopg.errors.UniqueViolation" in str(e):
+            raise APIError(status.HTTP_409_CONFLICT, caused_in="repository", message="already exists")
+        else:
+            logger.error("Error in PUST /adeebs/{id}", error=e)
+            raise APIError(status_code=status.HTTP_400_BAD_REQUEST, caused_in="repository")
 
 
 async def delete_one(id: UUID, cache: GlideClient, db: AsyncSession):
