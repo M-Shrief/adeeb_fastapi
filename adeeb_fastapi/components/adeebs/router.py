@@ -48,7 +48,7 @@ async def get_adeeb_by_id(id: UUID, cache: Annotated[GlideClient, Depends(get_as
             case status.HTTP_400_BAD_REQUEST:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error when getting a adeeb by id", error=e)
+        logger.error("Error in GET /adeebs/{id}", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 
@@ -100,6 +100,8 @@ async def update_adeeb(id: UUID, data: component_schemas.UpdateAdeeb_Req, cache:
         return 
     except APIError as e:
         match e.status_code:
+            case status.HTTP_409_CONFLICT:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="adeeb already exists")
             case status.HTTP_404_NOT_FOUND:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="adeeb is not found")
             case status.HTTP_400_BAD_REQUEST:
@@ -120,8 +122,6 @@ async def delete_adeeb(id: UUID, cache: Annotated[GlideClient, Depends(get_async
         match e.status_code:
             case status.HTTP_409_CONFLICT:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="adeeb is referenced in other places")
-            case status.HTTP_404_NOT_FOUND:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="adeeb is not found")
             case status.HTTP_400_BAD_REQUEST:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:

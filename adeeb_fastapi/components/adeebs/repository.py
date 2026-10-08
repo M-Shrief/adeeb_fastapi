@@ -135,6 +135,8 @@ async def update_one(id: UUID, data: component_schemas.UpdateAdeeb_Req, cache: G
  
         return  
 
+    except exc.NoResultFound:
+        raise APIError(status_code=status.HTTP_404_NOT_FOUND, caused_in="repository")
     except Exception as e:
         if "psycopg.errors.UniqueViolation" in str(e):
             raise APIError(status.HTTP_409_CONFLICT, caused_in="repository", message="already exists")
