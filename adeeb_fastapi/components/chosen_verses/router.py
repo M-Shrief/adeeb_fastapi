@@ -1,16 +1,13 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, exc, delete, func
-from typing import Annotated, Literal
+from typing import Annotated
 from uuid import UUID
-###
+# ###
+from adeeb_fastapi.utils.errors import APIError
 from adeeb_fastapi.utils.logger import logger
 from adeeb_fastapi.database.index import get_async_db
-from adeeb_fastapi.database.models import ChosenVerses as ChosenVersesModel
-from adeeb_fastapi.database import joins
 from adeeb_fastapi.schemas import chosen_verses as chosen_verses_schemas, api as api_schemas
-from adeeb_fastapi.components.chosen_verses import schemas as component_schemas
-
+from adeeb_fastapi.components.chosen_verses import schemas as component_schemas, service as component_service
 
 
 router = APIRouter(tags=["ChosenVersess"])
@@ -23,18 +20,14 @@ router = APIRouter(tags=["ChosenVersess"])
 )
 async def get_chosen_verses(queries: Annotated[api_schemas.SharedQueriesForGetManyRequests, Query()], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try: #
-        stmt = select(ChosenVersesModel, func.count().over().label('total')).offset(queries.offset).limit(queries.limit)
-
-        resp  = await db.execute(stmt)
-        rows = resp.all()
-
-        total_count: int | Literal[0] = rows[0].total if rows else 0 
-        chosen_verses =  [chosen_verses_schemas.DescriptiveSchema.model_validate(row[0], from_attributes=True) for row in list(rows)]
-
-        return api_schemas.GetAll_Res[chosen_verses_schemas.DescriptiveSchema](data=chosen_verses, total_count=total_count, limit=queries.limit, offset=queries.offset)
-
+        response_result = await component_service.get_all(queries, db)
+        return response_result
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error when getting chosen_verses", error=e)
+        logger.error("Error in GET /chosen_verses", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 @router.get(
@@ -45,16 +38,17 @@ async def get_chosen_verses(queries: Annotated[api_schemas.SharedQueriesForGetMa
 )
 async def get_chosen_verses_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        stmt = select(ChosenVersesModel).where(ChosenVersesModel.id == id)
-        stmt = stmt.options(joins.adeebs_to_chosen_verses).options(joins.poems_to_chosen_verses)
-        res = await db.scalars(statement=stmt)
-        chosen_verses = res.unique().one()
-        return chosen_verses
+        chosen_verse = await component_service.get_one_by_id(id, db)
+        return chosen_verse
 
-    except exc.NoResultFound:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="chosen_verses is not found!")
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_404_NOT_FOUND:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="chosen_verse is not found")
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error when getting a chosen_verses by id", error=e)
+        logger.error("Error in GET /chosen_verses/{id}", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 
@@ -64,27 +58,19 @@ async def get_chosen_verses_by_id(id: UUID, db: Annotated[AsyncSession, Depends(
     response_model=component_schemas.CreateOneChosenVerses_Res,
     response_model_exclude_none=True
 )
-async def create_one_chosen_verses(chosen_verses: component_schemas.CreateOneChosenVerses_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
+async def create_one_chosen_verses(data: component_schemas.CreateOneChosenVerses_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        new_chosen_verses = ChosenVersesModel(**chosen_verses.model_dump())
-        db.add(new_chosen_verses)
-        await db.commit()
-        await db.refresh(new_chosen_verses)
-
-        return new_chosen_verses
-
+        new_chosen_verse= await component_service.create_one(data, db)
+        return new_chosen_verse
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_409_CONFLICT:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=e.message)
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error occurred while creating a chosen_verses", error=e)
-        await db.rollback()
-        if "psycopg.errors.UniqueViolation" in str(e):
-            detail_msg = "chosen_verses does already exists"
-            raise HTTPException(status.HTTP_409_CONFLICT, detail=detail_msg)
-        elif "psycopg.errors.ForeignKeyViolation" in str(e): # (SQLSTATE 23503)
-            msg = "foreign key error"
-            raise HTTPException(status.HTTP_409_CONFLICT, detail=msg)
-        else:
-            detail_msg = "An error occurred while creating a chosen_verses, try again later."
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
+        logger.error("Error in POST /chosen_verses", error=e)
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Unknown error, try agian later")
 
 @router.post(
     path="/chosen_verses/many",
@@ -94,64 +80,32 @@ async def create_one_chosen_verses(chosen_verses: component_schemas.CreateOneCho
 )
 async def create_many_chosen_verses(data: list[component_schemas.CreateOneChosenVerses_Req], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        created_items: list[component_schemas.CreateOneChosenVerses_Res] = []
-        invalid_items: list[api_schemas.InvalidDataFieldType] = []
-
-        for index, item in enumerate(data):
-            try:
-                new_chosen_verses = ChosenVersesModel(**item.model_dump())
-                db.add(new_chosen_verses)
-                await db.commit()
-                await db.refresh(new_chosen_verses)
-
-                created_items.append(component_schemas.CreateOneChosenVerses_Res.model_validate(new_chosen_verses, from_attributes=True))
-            except Exception as e:
-                logger.error("Error occurred while creating a chosen_verses", error=e)
-                if "psycopg.errors.UniqueViolation" in str(e):
-                    msg = "chosen_verses does already exists"
-                elif "psycopg.errors.ForeignKeyViolation" in str(e): # (SQLSTATE 23503)
-                    msg = "foreign key error"
-                else:
-                    msg = "An error occurred while creating a chosen_verses, try again later."                
-
-                invalid_items.append(api_schemas.InvalidDataFieldType(
-                    item_index=index,
-                    message=msg
-                    ))
-
-        return component_schemas.CreateManyChosenVerses_Res(
-            created_items=created_items,
-            success_count=len(created_items),
-            invalid_items=invalid_items
-        )
-
-
+        result = await component_service.create_many(data, db)
+        return result 
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        detail_msg = "An error occurred while creating many chosen_verses entities, try again later."
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
+        logger.error("Error in POST /chosen_verses/many", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 @router.put(
     "/chosen_verses/{id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def update_chosen_verses(id: UUID, req_body: component_schemas.UpdateChosenVerses_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
+async def update_chosen_verses(id: UUID, data: component_schemas.UpdateChosenVerses_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        stmt = select(ChosenVersesModel).where(ChosenVersesModel.id == id)
-        res = await db.scalars(statement=stmt)    
-        existing_chosen_verses = res.unique().one()
-
-        new_chosen_verses_data = req_body.model_dump(exclude_none=True)  # Exclude None fields from the request body
-
-        for key, value in new_chosen_verses_data.items():
-            setattr(existing_chosen_verses, key, value)
-
-        await db.commit()
-        return
-        
-    except exc.NoResultFound:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ChosenVerses is not found!")
+        await component_service.update_one(id, data, db)
+        return 
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_404_NOT_FOUND:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="chosen_verse is not found")
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error when updating chosen_verses", error=e)
+        logger.error("Error in PUT /chosen_verses/{id}", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 @router.delete(
@@ -160,13 +114,14 @@ async def update_chosen_verses(id: UUID, req_body: component_schemas.UpdateChose
 )
 async def delete_chosen_verses(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        stmt = delete(ChosenVersesModel).where(ChosenVersesModel.id == id)
-        _ = await db.execute(statement=stmt)
-        await db.commit()
-
+        await component_service.delete_one(id, db)
         return
-    except exc.NoResultFound:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ChosenVerses is not found!")
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_409_CONFLICT:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="chosen_verse is referenced in other places")
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error when deleting chosen_verses", error=e)
+        logger.error("Error in DELETE /chosen_verses/{id}", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
