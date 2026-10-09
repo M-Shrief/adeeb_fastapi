@@ -146,7 +146,7 @@ async def update_one(id: UUID, data: component_schemas.UpdatePoem_Req, cache: Gl
         elif "psycopg.errors.ForeignKeyViolation" in str(e): # (SQLSTATE 23503)
             raise APIError(status.HTTP_409_CONFLICT, caused_in="repository", message="foreign key error")
         else:
-            logger.error("Error in PUST /poems/{id}", error=e)
+            logger.error("Error in PUT /poems/{id}", error=e)
             raise APIError(status_code=status.HTTP_400_BAD_REQUEST, caused_in="repository")
 
 
@@ -164,5 +164,5 @@ async def delete_one(id: UUID, cache: GlideClient, db: AsyncSession):
     except Exception as e:
         if "psycopg.errors.ForeignKeyViolation" in str(e):
             raise APIError(status_code=status.HTTP_409_CONFLICT, caused_in="repository")        
-        logger.error("Error when deleting poem", error=e)
+        logger.error("Error in DELETE /poems/{id}", error=e)
         raise APIError(status_code=status.HTTP_400_BAD_REQUEST, caused_in="repository")

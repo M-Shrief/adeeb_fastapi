@@ -45,7 +45,7 @@ async def get_poem_by_id(id: UUID, cache: Annotated[GlideClient, Depends(get_asy
     except APIError as e:
         match e.status_code:
             case status.HTTP_404_NOT_FOUND:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="adeeb is not found")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poem is not found")
             case status.HTTP_400_BAD_REQUEST:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
@@ -81,7 +81,7 @@ async def create_poem(poem: component_schemas.CreateOnePoem_Req, db: Annotated[A
 )
 async def create_poems(data: list[component_schemas.CreateOnePoem_Req], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        result = await service.create_many(data, db)
+        result: component_schemas.CreateManyPoem_Res = await service.create_many(data, db)
         return result 
     except APIError as e:
         match e.status_code:
@@ -102,7 +102,7 @@ async def update_poem(id: UUID, data: component_schemas.UpdatePoem_Req, cache: A
     except APIError as e:
         match e.status_code:
             case status.HTTP_404_NOT_FOUND:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="adeeb is not found")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poem is not found")
             case status.HTTP_400_BAD_REQUEST:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
