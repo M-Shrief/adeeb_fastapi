@@ -1,15 +1,13 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, exc, delete, func
-from typing import Annotated, Literal
+from typing import Annotated
 from uuid import UUID
 ###
+from adeeb_fastapi.utils.errors import APIError
 from adeeb_fastapi.utils.logger import logger
 from adeeb_fastapi.database.index import get_async_db
-from adeeb_fastapi.database.models import ProseQoute as ProseQouteModel
-from adeeb_fastapi.database import joins
 from adeeb_fastapi.schemas import prose_qoutes as prose_qoutes_schemas, api as api_schemas
-from adeeb_fastapi.components.prose_qoutes import schemas as component_schemas
+from adeeb_fastapi.components.prose_qoutes import schemas as component_schemas, service
 
 
 
@@ -23,18 +21,14 @@ router = APIRouter(tags=["ProseQoutes"])
 )
 async def get_prose_qoutes(queries: Annotated[api_schemas.SharedQueriesForGetManyRequests, Query()], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try: #
-        stmt = select(ProseQouteModel, func.count().over().label('total')).offset(queries.offset).limit(queries.limit)
-
-        resp  = await db.execute(stmt)
-        rows = resp.all()
-
-        total_count: int | Literal[0] = rows[0].total if rows else 0 
-        prose_qoutes =  [prose_qoutes_schemas.DescriptiveSchema.model_validate(row[0], from_attributes=True) for row in list(rows)]
-
-        return api_schemas.GetAll_Res[prose_qoutes_schemas.DescriptiveSchema](data=prose_qoutes, total_count=total_count, limit=queries.limit, offset=queries.offset)
-
+        response_result = await service.get_all(queries, db)
+        return response_result
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error when getting prose_qoutes", error=e)
+        logger.error("Error in GET /prose_qoutes", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 @router.get(
@@ -45,16 +39,17 @@ async def get_prose_qoutes(queries: Annotated[api_schemas.SharedQueriesForGetMan
 )
 async def get_prose_qoute_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        stmt = select(ProseQouteModel).where(ProseQouteModel.id == id)
-        stmt = stmt.options(joins.adeebs_to_prose_qoutes)
-        res = await db.scalars(statement=stmt)
-        prose_qoute = res.unique().one()
+        prose_qoute = await service.get_one_by_id(id, db)
         return prose_qoute
 
-    except exc.NoResultFound:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="prose_qoute is not found!")
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_404_NOT_FOUND:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="prose_qoute is not found")
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error when getting a prose_qoute by id", error=e)
+        logger.error("Error in GET /prose_qoutes/{id}", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 
@@ -64,27 +59,19 @@ async def get_prose_qoute_by_id(id: UUID, db: Annotated[AsyncSession, Depends(ge
     response_model=component_schemas.CreateOneProseQoute_Res,
     response_model_exclude_none=True
 )
-async def create_prose_qoute(prose_qoute: component_schemas.CreateOneProseQoute_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
+async def create_prose_qoute(data: component_schemas.CreateOneProseQoute_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        new_prose_qoute = ProseQouteModel(**prose_qoute.model_dump())
-        db.add(new_prose_qoute)
-        await db.commit()
-        await db.refresh(new_prose_qoute)
-
+        new_prose_qoute= await service.create_one(data, db)
         return new_prose_qoute
-
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_409_CONFLICT:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=e.message)
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error occurred while creating a prose_qoute", error=e)
-        await db.rollback()
-        if "psycopg.errors.UniqueViolation" in str(e):
-            detail_msg = "prose_qoute does already exists"
-            raise HTTPException(status.HTTP_409_CONFLICT, detail=detail_msg)
-        elif "psycopg.errors.ForeignKeyViolation" in str(e): # (SQLSTATE 23503)
-            msg = "foreign key error"
-            raise HTTPException(status.HTTP_409_CONFLICT, detail=msg)
-        else:
-            detail_msg = "An error occurred while creating a prose_qoute, try again later."
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
+        logger.error("Error in POST /prose_qoute", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 @router.post(
     path="/prose_qoutes/many",
@@ -94,64 +81,32 @@ async def create_prose_qoute(prose_qoute: component_schemas.CreateOneProseQoute_
 )
 async def create_prose_qoutes(data: list[component_schemas.CreateOneProseQoute_Req], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        created_items: list[component_schemas.CreateOneProseQoute_Res] = []
-        invalid_items: list[api_schemas.InvalidDataFieldType] = []
-
-        for index, item in enumerate(data):
-            try:
-                new_prose_qoute = ProseQouteModel(**item.model_dump())
-                db.add(new_prose_qoute)
-                await db.commit()
-                await db.refresh(new_prose_qoute)
-
-                created_items.append(component_schemas.CreateOneProseQoute_Res.model_validate(new_prose_qoute, from_attributes=True))
-            except Exception as e:
-                logger.error("Error occurred while creating a prose_qoute", error=e)
-                if "psycopg.errors.UniqueViolation" in str(e):
-                    msg = "prose_qoute does already exists"
-                elif "psycopg.errors.ForeignKeyViolation" in str(e): # (SQLSTATE 23503)
-                    msg = "foreign key error"
-                else:
-                    msg = "An error occurred while creating a prose_qoute, try again later."                
-
-                invalid_items.append(api_schemas.InvalidDataFieldType(
-                    item_index=index,
-                    message=msg
-                    ))
-
-        return component_schemas.CreateManyProseQoute_Res(
-            created_items=created_items,
-            success_count=len(created_items),
-            invalid_items=invalid_items
-        )
-
-
+        result = await service.create_many(data, db)
+        return result 
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        detail_msg = "An error occurred while creating many prose_qoute entities, try again later."
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
+        logger.error("Error in POST /prose_qoutes/many", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 @router.put(
     "/prose_qoutes/{id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def update_prose_qoute(id: UUID, req_body: component_schemas.UpdateProseQoute_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
+async def update_prose_qoute(id: UUID, data: component_schemas.UpdateProseQoute_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        stmt = select(ProseQouteModel).where(ProseQouteModel.id == id)
-        res = await db.scalars(statement=stmt)    
-        existing_prose_qoute = res.unique().one()
-
-        new_prose_qoute_data = req_body.model_dump(exclude_none=True)  # Exclude None fields from the request body
-
-        for key, value in new_prose_qoute_data.items():
-            setattr(existing_prose_qoute, key, value)
-
-        await db.commit()
-        return
-        
-    except exc.NoResultFound:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ProseQoute is not found!")
+        await service.update_one(id, data, db)
+        return 
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_404_NOT_FOUND:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="prose_qoute is not found")
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error when updating prose_qoute", error=e)
+        logger.error("Error in PUT /prose_qoutes/{id}", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 @router.delete(
@@ -160,13 +115,14 @@ async def update_prose_qoute(id: UUID, req_body: component_schemas.UpdateProseQo
 )
 async def delete_prose_qoute(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        stmt = delete(ProseQouteModel).where(ProseQouteModel.id == id)
-        _ = await db.execute(statement=stmt)
-        await db.commit()
-
+        await service.delete_one(id, db)
         return
-    except exc.NoResultFound:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ProseQoute is not found!")
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_409_CONFLICT:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="prose_qoute is referenced in other places")
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error when deleting prose_qoute", error=e)
+        logger.error("Error in DELETE /prose_qoutes/{id}", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
