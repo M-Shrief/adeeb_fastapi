@@ -7,7 +7,7 @@ from adeeb_fastapi.utils.errors import APIError
 from adeeb_fastapi.utils.logger import logger
 from adeeb_fastapi.database.index import get_async_db
 from adeeb_fastapi.schemas import chosen_verses as chosen_verses_schemas, api as api_schemas
-from adeeb_fastapi.components.chosen_verses import schemas as component_schemas, service as component_service
+from adeeb_fastapi.components.chosen_verses import schemas as component_schemas, service
 
 
 router = APIRouter(tags=["ChosenVersess"])
@@ -20,7 +20,7 @@ router = APIRouter(tags=["ChosenVersess"])
 )
 async def get_chosen_verses(queries: Annotated[api_schemas.SharedQueriesForGetManyRequests, Query()], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try: #
-        response_result = await component_service.get_all(queries, db)
+        response_result = await service.get_all(queries, db)
         return response_result
     except APIError as e:
         match e.status_code:
@@ -38,7 +38,7 @@ async def get_chosen_verses(queries: Annotated[api_schemas.SharedQueriesForGetMa
 )
 async def get_chosen_verses_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        chosen_verse = await component_service.get_one_by_id(id, db)
+        chosen_verse = await service.get_one_by_id(id, db)
         return chosen_verse
 
     except APIError as e:
@@ -60,7 +60,7 @@ async def get_chosen_verses_by_id(id: UUID, db: Annotated[AsyncSession, Depends(
 )
 async def create_one_chosen_verses(data: component_schemas.CreateOneChosenVerses_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        new_chosen_verse= await component_service.create_one(data, db)
+        new_chosen_verse= await service.create_one(data, db)
         return new_chosen_verse
     except APIError as e:
         match e.status_code:
@@ -80,7 +80,7 @@ async def create_one_chosen_verses(data: component_schemas.CreateOneChosenVerses
 )
 async def create_many_chosen_verses(data: list[component_schemas.CreateOneChosenVerses_Req], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        result = await component_service.create_many(data, db)
+        result = await service.create_many(data, db)
         return result 
     except APIError as e:
         match e.status_code:
@@ -96,7 +96,7 @@ async def create_many_chosen_verses(data: list[component_schemas.CreateOneChosen
 )
 async def update_chosen_verses(id: UUID, data: component_schemas.UpdateChosenVerses_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        await component_service.update_one(id, data, db)
+        await service.update_one(id, data, db)
         return 
     except APIError as e:
         match e.status_code:
@@ -114,7 +114,7 @@ async def update_chosen_verses(id: UUID, data: component_schemas.UpdateChosenVer
 )
 async def delete_chosen_verses(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        await component_service.delete_one(id, db)
+        await service.delete_one(id, db)
         return
     except APIError as e:
         match e.status_code:
