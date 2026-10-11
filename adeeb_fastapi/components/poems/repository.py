@@ -69,7 +69,7 @@ async def create_one(poem: component_schemas.CreateOnePoem_Req, db: AsyncSession
         db.add(new_poem)
         await db.commit()
         await db.refresh(new_poem)
-
+        return new_poem
     except Exception as e:
         await db.rollback()
         if "psycopg.errors.UniqueViolation" in str(e):
