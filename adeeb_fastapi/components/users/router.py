@@ -1,16 +1,14 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Header, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import bindparam, select, exc, delete, func
-from sqlalchemy.orm.attributes import flag_modified
-from typing import Annotated, Any, Literal
+from typing import Annotated
 from uuid import UUID
 ###
+from adeeb_fastapi.utils.errors import APIError
 from adeeb_fastapi.utils.logger import logger
 from adeeb_fastapi.utils import auth as auth_utils
 from adeeb_fastapi.database.index import get_async_db
-from adeeb_fastapi.database.models import User as UserModel, roles_enum
-from adeeb_fastapi.schemas import users as users_schemas, api as api_schemas
-from adeeb_fastapi.components.users import schemas as component_schemas
+from adeeb_fastapi.schemas import api as api_schemas
+from adeeb_fastapi.components.users import schemas as component_schemas, service
 
 
 router = APIRouter(tags=["Users"])
@@ -24,34 +22,18 @@ router = APIRouter(tags=["Users"])
 async def get_users(queries: Annotated[api_schemas.SharedQueriesForGetManyRequests, Query()], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try: 
         if Authorization is None:
-            raise auth_utils.AuthorizationError
+            raise APIError(status.HTTP_401_UNAUTHORIZED, caused_in="route")
 
-        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
-        if verified is False or  payload is None:
-            raise auth_utils.AuthorizationError
-
-        permissions: list[str] | None = payload.get("permissions")
-        if permissions is None:
-            raise auth_utils.AuthorizationError
-
-        is_administrator = auth_utils.check_adminstration(permissions, "read")
-        if is_administrator is False:
-            raise auth_utils.AuthorizationError
-
-        stmt = select(UserModel, func.count().over().label('total')).offset(queries.offset).limit(queries.limit)
-
-        resp  = await db.execute(stmt)
-        rows = resp.all()
-
-        total_count: int | Literal[0] = rows[0].total if rows else 0 
-        users =  [users_schemas.DescriptiveSchema.model_validate(row[0], from_attributes=True) for row in list(rows)]
-
-        return api_schemas.GetAll_Res[users_schemas.DescriptiveSchema](data=users, total_count=total_count, limit=queries.limit, offset=queries.offset)
-
-    except HTTPException as e:
-        raise e
+        result = await service.get_all(queries, Authorization, db)
+        return result 
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_401_UNAUTHORIZED:
+                raise auth_utils.AuthorizationError
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error when getting users", error=e)
+        logger.error("Error in GET /users", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 
@@ -64,42 +46,20 @@ async def get_users(queries: Annotated[api_schemas.SharedQueriesForGetManyReques
 async def get_current_user(db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try: 
         if Authorization is None:
-            raise auth_utils.AuthorizationError
+            raise APIError(status.HTTP_401_UNAUTHORIZED, caused_in="route")
 
-
-        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
-        if verified is False or payload is None:
-            raise auth_utils.AuthorizationError
-
-        permissions: list[str] | None = payload.get("permissions")
-        if permissions is None:
-            raise auth_utils.AuthorizationError
-            
-        authorized_list=[
-            auth_utils.create_authorized_item(users_schemas.RoleEnum.Normal, "read"),
-        ]
-
-        is_permitted = auth_utils.check_permission(authorized_list, permissions, "read")
-        if is_permitted is False:
-            raise auth_utils.AuthorizationError
-
-
-        user = payload["user"] # getting user data from payload
-
-
-        stmt = select(UserModel).where(UserModel.id == user["id"])
-
-        resp  = await db.scalars(stmt)
-        existing_user = resp.unique().one()
-
-        return existing_user
-
-    except exc.NoResultFound:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not found!")
-    except HTTPException as e:
-        raise e
+        result = await service.get_current_user(Authorization, db)
+        return result 
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_401_UNAUTHORIZED:
+                raise auth_utils.AuthorizationError
+            case status.HTTP_404_NOT_FOUND:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User's not found")
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error when getting user", error=e)
+        logger.error("Error in GET /users/me", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 @router.get(
@@ -111,34 +71,20 @@ async def get_current_user(db: Annotated[AsyncSession, Depends(get_async_db)], A
 async def get_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try: 
         if Authorization is None:
-            raise auth_utils.AuthorizationError
+            raise APIError(status.HTTP_401_UNAUTHORIZED, caused_in="route")
 
-        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
-        if verified is False or  payload is None:
-            raise auth_utils.AuthorizationError
-
-        permissions: list[str] | None = payload.get("permissions")
-        if permissions is None:
-            raise auth_utils.AuthorizationError
-
-        is_administrator = auth_utils.check_adminstration(permissions, "read")
-        if is_administrator is False:
-            raise auth_utils.AuthorizationError
-
-
-        stmt = select(UserModel).where(UserModel.id == id)
-
-        resp  = await db.scalars(stmt)
-        existing_user = resp.unique().one()
-
-        return existing_user
-
-    except exc.NoResultFound:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not found!")
-    except HTTPException as e:
-        raise e
+        result = await service.get_one_by_id(id, Authorization, db)
+        return result 
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_401_UNAUTHORIZED:
+                raise auth_utils.AuthorizationError
+            case status.HTTP_404_NOT_FOUND:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User's not found")
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Error when getting user", error=e)
+        logger.error("Error in GET /users/{id}", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 @router.post(
@@ -149,33 +95,18 @@ async def get_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async
     )
 async def signup(user: component_schemas.UserSignup_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try: 
-        new_user = UserModel(**user.model_dump())
-        new_user.password = auth_utils.hash_password(new_user.password)
+        result = await service.signup(user, db)
+        return result 
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_409_CONFLICT:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User does already exists")
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
+    except Exception as e:
+        logger.error("Error in POST /users/signup", error=e)
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
-        try: # Clean roles from duplicates, and ensure Normal role exists
-            new_user.roles = list(set(new_user.roles))
-            _ = new_user.roles.index(users_schemas.RoleEnum.Normal)
-        except ValueError:
-            new_user.roles.append(users_schemas.RoleEnum.Normal)
-    
-        db.add(new_user)
-        await db.commit()
-        await db.refresh(new_user)
-
-        res_user = users_schemas.DescriptiveSchema(id=new_user.id, username=new_user.username, roles=new_user.roles)
-
-        access_token = auth_utils.create_jwt(id=new_user.id, username=new_user.username, roles=new_user.roles)
-        return component_schemas.UserAuth_Res(user=res_user, access_token=access_token)
-
-    except Exception as e: 
-        logger.error("Signup Error", err=e)
-        await db.rollback()
-        if "psycopg.errors.UniqueViolation" in str(e):
-            detail_msg = "Username's already taken"
-            raise HTTPException(status.HTTP_409_CONFLICT, detail=detail_msg)
-        else:
-            detail_msg = "An error occurred while signing up, try again later."
-            raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail=detail_msg)
 
 @router.post(
     "/users/login",
@@ -185,145 +116,68 @@ async def signup(user: component_schemas.UserSignup_Req, db: Annotated[AsyncSess
 )
 async def login(user: component_schemas.UserLogin_Req, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        stmt = select(UserModel).where(UserModel.username == user.username) ## need to select required fields only.
-        res =  await db.execute(statement=stmt)
-        existing_user = res.scalar()
-
-
-        if existing_user: # User exist in DB
-            if auth_utils.verify_password(user.password, existing_user.password) is False: # if password is incorrect.
-                raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="User's password is incorrect.")
-            
-            res_user = users_schemas.DescriptiveSchema(id=existing_user.id, username=existing_user.username, roles=existing_user.roles)
-            access_token = auth_utils.create_jwt(id=existing_user.id, username=existing_user.username, roles=existing_user.roles)
-            return component_schemas.UserAuth_Res(user=res_user, access_token=access_token)
-
-        else:
-            # User doesn't exist
-            raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="User's name is incorrect.")
-
-    except exc.NoResultFound:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User's name is incorrect.")
-    except HTTPException as e:
-        raise e
+        result = await service.login(user, db)
+        return result 
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_404_NOT_FOUND:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User's not found")
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        detail_msg = "An error occurred while loggin in, try again later."
-        logger.error("Login Error", err=e)
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
+        logger.error("Error in POST /users/login", error=e)
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 
 @router.put(
     "/users/me",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def update_current_user(new_data: component_schemas.UpdateCurrentUser_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+async def update_current_user(data: component_schemas.UpdateCurrentUser_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise auth_utils.AuthorizationError
+            raise APIError(status.HTTP_401_UNAUTHORIZED, caused_in="route")
 
-        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
-        if verified is False or payload is None :
-            raise auth_utils.AuthorizationError
-
-        permissions: list[str] | None = payload.get("permissions")
-        if permissions is None:
-            raise auth_utils.AuthorizationError
-
-        authorized_list=[
-            auth_utils.create_authorized_item(users_schemas.RoleEnum.Normal, "write"),
-        ]
-
-        is_permitted = auth_utils.check_permission(authorized_list, permissions, "write")
-        if is_permitted is False:
-            raise auth_utils.AuthorizationError
-
-        user = payload["user"]
-
-        stmt = select(UserModel).where(UserModel.id == user["id"]) 
-        res =  await db.execute(statement=stmt)
-        existing_user = res.scalar()
-
-        if existing_user: # User exist in DB
-
-            if new_data.username is not None:
-                existing_user.username = new_data.username
-
-            if new_data.password is not None:
-                hashed_password = auth_utils.hash_password(new_data.password)
-                existing_user.password = hashed_password
-
-            await db.commit()
-            return 
-        else:
-            # User doesn't exist
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User doesn't exists")
-
-    except exc.NoResultFound:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not found!")
-    except HTTPException as e:
-        raise e
+        await service.update_current_user(Authorization, data, db)
+        return 
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_401_UNAUTHORIZED:
+                raise auth_utils.AuthorizationError
+            case status.HTTP_404_NOT_FOUND:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User's not found")
+            case status.HTTP_409_CONFLICT:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User does already exists")
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Update User Error", err=e)
-        detail_msg = "An error occurred while updating the user, try again later."
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
+        logger.error("Error in PUT /users/me", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 @router.put(
     "/users/{id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def update_user_by_id(id: UUID, new_data: component_schemas.UpdateUserById_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+async def update_user_by_id(id: UUID, data: component_schemas.UpdateUserById_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise auth_utils.AuthorizationError
+            raise APIError(status.HTTP_401_UNAUTHORIZED, caused_in="route")
 
-        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
-        if verified is False or  payload is None:
-            raise auth_utils.AuthorizationError
-        
-
-        permissions: list[str] | None = payload.get("permissions")
-        if permissions is None:
-            raise auth_utils.AuthorizationError
-
-        is_administrator = auth_utils.check_adminstration(permissions, "write")
-        if is_administrator is False:
-            raise auth_utils.AuthorizationError
-
-
-        stmt = select(UserModel).where(UserModel.id == id) 
-        res =  await db.execute(statement=stmt)
-        existing_user = res.scalar()
-
-        if existing_user: # User exist in DB
-
-            if new_data.username is not None:
-                existing_user.username = new_data.username
-
-            if new_data.password is not None:
-                hashed_password = auth_utils.hash_password(new_data.password)
-                existing_user.password = hashed_password
-
-            if new_data.roles is not None:
-                try: # Clean roles from duplicates, and ensure Normal role exists
-                    existing_user.roles = list(set(new_data.roles))
-                    _ = existing_user.roles.index(users_schemas.RoleEnum.Normal)
-                except ValueError:
-                    existing_user.roles.append(users_schemas.RoleEnum.Normal)
-
-            await db.commit()
-            return
-        else:
-            # User doesn't exist
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User doesn't exists")
-
-    except exc.NoResultFound:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not found!")
-    except HTTPException as e:
-        raise e
+        await service.update_user_by_id(id, Authorization, data, db)
+        return 
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_401_UNAUTHORIZED:
+                raise auth_utils.AuthorizationError
+            case status.HTTP_404_NOT_FOUND:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User's not found")
+            case status.HTTP_409_CONFLICT:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User does already exists")
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Update User Error", err=e)
-        detail_msg = "An error occurred while updating the user, try again later."
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
+        logger.error("Error in PUT /users/{id}", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 @router.put(
     "/users/{id}/ban",
@@ -332,46 +186,20 @@ async def update_user_by_id(id: UUID, new_data: component_schemas.UpdateUserById
 async def ban_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise auth_utils.AuthorizationError
-
-        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
-        if verified is False or  payload is None:
-            raise auth_utils.AuthorizationError
-        
-
-        permissions: list[str] | None = payload.get("permissions")
-        if permissions is None:
-            raise auth_utils.AuthorizationError
-
-        is_administrator = auth_utils.check_adminstration(permissions, "write")
-        if is_administrator is False:
-            raise auth_utils.AuthorizationError
-
-        stmt = select(UserModel).where(UserModel.id == id) 
-        res =  await db.execute(statement=stmt)
-        existing_user = res.scalar()
-
-        if existing_user: # User exist in DB
-            try: # Clean roles from duplicates, and check if Banned role already exists
-                _ = existing_user.roles.index(users_schemas.RoleEnum.Banned)
-            except ValueError:
-                existing_user.roles.append(users_schemas.RoleEnum.Banned)
-                flag_modified(existing_user, "roles")
-
-            await db.commit()
-            return
-        else:
-            # User doesn't exist
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User doesn't exists")
-        
-    except exc.NoResultFound:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not found!")
-    except HTTPException as e:
-        raise e
+             raise APIError(status.HTTP_401_UNAUTHORIZED, caused_in="route")
+        await service.ban_user_by_id(id, Authorization, db)
+        return 
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_401_UNAUTHORIZED:
+                raise auth_utils.AuthorizationError
+            case status.HTTP_404_NOT_FOUND:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User's not found")
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Ban User Error", err=e)
-        detail_msg = "An error occurred while banning the user, try again later."
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
+        logger.error("Error in PUT /users/{id}/ban", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 
 @router.delete(
@@ -381,40 +209,22 @@ async def ban_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async
 async def delete_current_user(db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise auth_utils.AuthorizationError
+            raise APIError(status.HTTP_401_UNAUTHORIZED, caused_in="route")
 
-        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
-        if verified is False or payload is None :
-            raise auth_utils.AuthorizationError
-
-        permissions: list[str] | None = payload.get("permissions")
-        if permissions is None:
-            raise auth_utils.AuthorizationError
-
-        authorized_list=[
-            auth_utils.create_authorized_item(users_schemas.RoleEnum.Normal, "write"),
-        ]
-
-        is_permitted = auth_utils.check_permission(authorized_list, permissions, "write")
-        if is_permitted is False:
-            raise auth_utils.AuthorizationError
-
-        user = payload["user"]
-        stmt = delete(UserModel).where(UserModel.id == user["id"])
-
-        _ = await db.execute(statement=stmt)
-        await db.commit()
-
-        return
+        result = await service.delete_current_user(Authorization, db)
+        return result 
     
-    except exc.NoResultFound:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not found!")
-    except HTTPException as e:
-        raise e
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_401_UNAUTHORIZED:
+                raise auth_utils.AuthorizationError
+            case status.HTTP_409_CONFLICT:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User does already exists")
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Delete User Error", err=e)
-        detail_msg = "An error occurred while deleting the user, try again later."
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
+        logger.error("Error in DELETE /users/me", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 @router.delete(
     "/users/{id}",
@@ -423,33 +233,18 @@ async def delete_current_user(db: Annotated[AsyncSession, Depends(get_async_db)]
 async def delete_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise auth_utils.AuthorizationError
-
-        payload, verified = auth_utils.verify_jwt(authorization_header=Authorization)
-        if verified is False or  payload is None:
-            raise auth_utils.AuthorizationError
-
-        permissions: list[str] | None = payload.get("permissions")
-        if permissions is None:
-            raise auth_utils.AuthorizationError
-
-        is_administrator = auth_utils.check_adminstration(permissions, "write")
-        if is_administrator is False:
-            raise auth_utils.AuthorizationError
-
-        
-        stmt = delete(UserModel).where(UserModel.id == id)
-
-        _ = await db.execute(statement=stmt)
-        await db.commit()
-
-        return
+            raise APIError(status.HTTP_401_UNAUTHORIZED, caused_in="route")
+        result = await service.delete_one(id, Authorization, db)
+        return result 
     
-    except exc.NoResultFound:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not found!")
-    except HTTPException as e:
-        raise e
+    except APIError as e:
+        match e.status_code:
+            case status.HTTP_401_UNAUTHORIZED:
+                raise auth_utils.AuthorizationError
+            case status.HTTP_409_CONFLICT:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User is referrenced in other tables")
+            case status.HTTP_400_BAD_REQUEST:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
     except Exception as e:
-        logger.error("Delete User Error", err=e)
-        detail_msg = "An error occurred while deleting the user, try again later."
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail_msg)
+        logger.error("Error in DELETE /users/{id}", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
