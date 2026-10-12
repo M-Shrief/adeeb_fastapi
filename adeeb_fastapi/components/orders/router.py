@@ -123,7 +123,7 @@ async def create_one_order(data: component_schemas.CreateOneOrder_Req, db: Annot
 @router.post(
     path="/orders/many",
     status_code=status.HTTP_201_CREATED,
-    response_model=component_schemas.CreateManyOrder_Res,
+    response_model=api_schemas.CreateMany_Res[component_schemas.CreateOneOrder_Res],
     response_model_exclude_none=True
 )
 async def create_many_orders(data: list[component_schemas.CreateOneOrder_Req], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
@@ -173,7 +173,7 @@ async def add_one_print(order_id: UUID, data: component_schemas.PrintItem_Req, c
 @router.post(
     "/orders/{order_id}/prints/many/",
     status_code=status.HTTP_201_CREATED,
-    response_model=component_schemas.PrintItem_Res,
+    response_model=api_schemas.CreateMany_Res[component_schemas.PrintItem_Res],
     response_model_exclude_none=True
 )
 async def add_many_prints(order_id: UUID, data: list[component_schemas.PrintItem_Req], cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):

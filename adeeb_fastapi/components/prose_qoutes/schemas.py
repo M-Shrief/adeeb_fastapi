@@ -24,11 +24,6 @@ class CreateOneProseQoute_Res(BaseModel):
     created_at: general.CreatedAtField
     updated_at: general.UpdatedAtField
 
-class CreateManyProseQoute_Res(BaseModel):
-    created_items: Annotated[list[CreateOneProseQoute_Res], Field(default=[])]
-    invalid_items: Annotated[list[api.InvalidDataFieldType], Field(default=[])]
-    success_count: Annotated[int, Field(default=0)]
-
 class UpdateProseQoute_Req(BaseModel):
     adeeb_id: general.AdeebIDField_Optional
     tags: general.TagsField_Optional

@@ -76,7 +76,7 @@ async def create_prose_qoute(data: component_schemas.CreateOneProseQoute_Req, db
 @router.post(
     path="/prose_qoutes/many",
     status_code=status.HTTP_201_CREATED,
-    response_model=component_schemas.CreateManyProseQoute_Res,
+    response_model=api_schemas.CreateMany_Res[component_schemas.CreateOneProseQoute_Res],
     response_model_exclude_none=True
 )
 async def create_prose_qoutes(data: list[component_schemas.CreateOneProseQoute_Req], db: Annotated[AsyncSession, Depends(get_async_db)]):

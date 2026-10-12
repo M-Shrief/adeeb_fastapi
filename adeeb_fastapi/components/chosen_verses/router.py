@@ -75,7 +75,7 @@ async def create_one_chosen_verses(data: component_schemas.CreateOneChosenVerses
 @router.post(
     path="/chosen_verses/many",
     status_code=status.HTTP_201_CREATED,
-    response_model=component_schemas.CreateManyChosenVerses_Res,
+    response_model=api_schemas.CreateMany_Res[component_schemas.CreateOneChosenVerses_Res],
     response_model_exclude_none=True
 )
 async def create_many_chosen_verses(data: list[component_schemas.CreateOneChosenVerses_Req], db: Annotated[AsyncSession, Depends(get_async_db)]):

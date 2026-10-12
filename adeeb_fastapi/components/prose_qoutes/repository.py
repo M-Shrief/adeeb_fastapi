@@ -86,7 +86,7 @@ async def create_many(data: list[component_schemas.CreateOneProseQoute_Req], db:
                     message=msg
                     ))
 
-        return component_schemas.CreateManyProseQoute_Res(
+        return api_schemas.CreateMany_Res[component_schemas.CreateOneProseQoute_Res](
             created_items=created_items,
             success_count=len(created_items),
             invalid_items=invalid_items

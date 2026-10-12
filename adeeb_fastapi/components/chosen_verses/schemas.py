@@ -26,11 +26,6 @@ class CreateOneChosenVerses_Res(BaseModel):
     created_at: general.CreatedAtField
     updated_at: general.UpdatedAtField
 
-class CreateManyChosenVerses_Res(BaseModel):
-    created_items: Annotated[list[CreateOneChosenVerses_Res], Field(default=[])]
-    invalid_items: Annotated[list[api.InvalidDataFieldType], Field(default=[])]
-    success_count: Annotated[int, Field(default=0)]
-
 class UpdateChosenVerses_Req(BaseModel):
     adeeb_id: general.AdeebIDField_Optional
     poem_id: general.PoemIDField_Optional

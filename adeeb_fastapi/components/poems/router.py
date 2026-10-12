@@ -76,12 +76,12 @@ async def create_poem(poem: component_schemas.CreateOnePoem_Req, db: Annotated[A
 @router.post(
     path="/poems/many",
     status_code=status.HTTP_201_CREATED,
-    response_model=component_schemas.CreateManyPoem_Res,
+    response_model=api_schemas.CreateMany_Res[component_schemas.CreateOnePoem_Res],
     response_model_exclude_none=True
 )
 async def create_poems(data: list[component_schemas.CreateOnePoem_Req], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        result: component_schemas.CreateManyPoem_Res = await service.create_many(data, db)
+        result = await service.create_many(data, db)
         return result 
     except APIError as e:
         match e.status_code:

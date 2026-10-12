@@ -24,11 +24,6 @@ class CreateOneAdeeb_Res(BaseModel):
     created_at: general.CreatedAtField
     updated_at: general.UpdatedAtField
 
-class CreateManyAdeeb_Res(BaseModel):
-    created_items: Annotated[list[CreateOneAdeeb_Res], Field(default=[])]
-    invalid_items: Annotated[list[api.InvalidDataFieldType], Field(default=[])]
-    success_count: Annotated[int, Field(default=0)]
-
 class UpdateAdeeb_Req(BaseModel):
     name: adeebs.NameField_Optional
     time_period: adeebs.TimePeriodField_Optional

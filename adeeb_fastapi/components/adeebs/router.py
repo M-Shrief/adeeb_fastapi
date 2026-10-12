@@ -75,7 +75,7 @@ async def create_adeeb(adeeb: component_schemas.CreateOneAdeeb_Req, db: Annotate
 @router.post(
     path="/adeebs/many",
     status_code=status.HTTP_201_CREATED,
-    response_model=component_schemas.CreateManyAdeeb_Res,
+    response_model=api_schemas.CreateMany_Res[component_schemas.CreateOneAdeeb_Res],
     response_model_exclude_none=True
 )
 async def create_adeebs(data: list[component_schemas.CreateOneAdeeb_Req], db: Annotated[AsyncSession, Depends(get_async_db)]):

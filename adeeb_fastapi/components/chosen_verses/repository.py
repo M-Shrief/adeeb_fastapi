@@ -87,7 +87,7 @@ async def create_many(data: list[component_schemas.CreateOneChosenVerses_Req], d
                     message=msg
                     ))
 
-        return component_schemas.CreateManyChosenVerses_Res(
+        return api_schemas.CreateMany_Res[component_schemas.CreateOneChosenVerses_Res](
             created_items=created_items,
             success_count=len(created_items),
             invalid_items=invalid_items

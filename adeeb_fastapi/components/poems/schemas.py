@@ -25,11 +25,6 @@ class CreateOnePoem_Res(BaseModel):
     created_at: general.CreatedAtField
     updated_at: general.UpdatedAtField
 
-class CreateManyPoem_Res(BaseModel):
-    created_items: Annotated[list[CreateOnePoem_Res], Field(default=[])]
-    invalid_items: Annotated[list[api.InvalidDataFieldType], Field(default=[])]
-    success_count: Annotated[int, Field(default=0)]
-
 class UpdatePoem_Req(BaseModel):
     adeeb_id: general.AdeebIDField_Optional
     intro: poems.IntroField_Optional
