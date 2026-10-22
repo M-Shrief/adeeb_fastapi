@@ -42,12 +42,15 @@ async def cache_get(key: str, client: GlideClient):
     except Exception:
         return None
 
-async def cache_set(key: str, value: BaseModel, client: GlideClient):
+async def cache_set(key: str, value: BaseModel, client: GlideClient, exp: int = 60 * 15):
+    """Set a new cached item with a key.
+    
+    exp (expiry time) is defined by seconds, default 15 minutes"""
     try:
         _ = await client.set(
             key=key,
             value=value.model_dump_json(indent=0,exclude_none=True, exclude_unset=True), # set indent=0 to decrease the string size.
-            expiry=ExpirySet(ExpiryType.SEC, 60 * 15)
+            expiry=ExpirySet(ExpiryType.SEC, exp)
         )
     
         return None
