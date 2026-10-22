@@ -56,12 +56,12 @@ class CacheConfig(BaseSettings):
 
 cache_config = CacheConfig.model_validate({})
 
-class JWTConfig(BaseSettings):
+class AccessJWTConfig(BaseSettings):
     """Note: Use .model_validate({}) to prevent Basedpyright errros when initializing the class"""
     model_config = SettingsConfigDict(
         env_file='.env',  # path of .env
         env_file_encoding='utf-8',
-        env_prefix="JWT_", #prefix for everey field.
+        env_prefix="ACCESS_JWT_", #prefix for everey field.
         extra="ignore" # ignore other ENV so that we can modularize its use.
     )
 
@@ -78,4 +78,28 @@ class JWTConfig(BaseSettings):
     def public_key(self)->str:
         return open(self.public_path).read()
 
-jwt_config = JWTConfig.model_validate({})
+access_jwt_config = AccessJWTConfig.model_validate({})
+
+class RefreshJWTConfig(BaseSettings):
+    """Note: Use .model_validate({}) to prevent Basedpyright errros when initializing the class"""
+    model_config = SettingsConfigDict(
+        env_file='.env',  # path of .env
+        env_file_encoding='utf-8',
+        env_prefix="REFRESH_JWT_", #prefix for everey field.
+        extra="ignore" # ignore other ENV so that we can modularize its use.
+    )
+
+    private_path: str
+    public_path: str
+
+    @computed_field
+    @property
+    def private_key(self)->str:
+        return open(self.private_path).read()
+
+    @computed_field
+    @property
+    def public_key(self)->str:
+        return open(self.public_path).read()
+
+refresh_jwt_config = RefreshJWTConfig.model_validate({})
