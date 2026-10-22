@@ -15,7 +15,7 @@ BASE_URL = "http://localhost:8000"
 def client()  -> Generator[TestClient, Any, None]:
     with TestClient(app=app, base_url=BASE_URL, backend="asyncio") as c:
         yield c
-
+    app.dependency_overrides.clear()  # always clean up
 
 # # Couldn't configure it to use Async client.
 # @pytest.fixture

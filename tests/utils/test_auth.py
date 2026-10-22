@@ -5,7 +5,7 @@ import jwt
 from uuid import uuid4
 from datetime import UTC, datetime
 ###
-from adeeb_fastapi.config import jwt_config
+from adeeb_fastapi.config import access_jwt_config
 from adeeb_fastapi.utils.auth import create_jwt, create_permissions, create_jwt_payload, verify_jwt, create_authorized_item, check_permission, write_ops_auth, AuthorizationError
 from adeeb_fastapi.schemas.users import RoleEnum
 
@@ -23,7 +23,7 @@ async def test_create_jwt():
 
     payload = jwt.decode(
         jwt=token,
-        key=jwt_config.public_key,
+        key=access_jwt_config.public_key,
         algorithms=["RS256"]
     )
 
@@ -60,7 +60,7 @@ async def test_verify_jwt(subtests: pytest.Subtests):
         payload1 =  create_jwt_payload(id, username, roles)
         token: str = jwt.encode(
             payload=payload1,
-            key=jwt_config.private_key,
+            key=access_jwt_config.private_key,
             algorithm="RS256"
             )
 
@@ -88,7 +88,7 @@ async def test_verify_jwt(subtests: pytest.Subtests):
         payload1 =  create_jwt_payload(id, username, roles, 0)
         token: str = jwt.encode(
             payload=payload1,
-            key=jwt_config.private_key,
+            key=access_jwt_config.private_key,
             algorithm="RS256"
             )
         jwt_payload, is_verified = verify_jwt(f"Bearer {token}")
@@ -157,7 +157,7 @@ async def test_check_permission(subtests: pytest.Subtests):
 
         permissions=[
             create_authorized_item(RoleEnum.Normal, "read"),
-            create_authorized_item(RoleEnum.BANNED, "read"),
+            create_authorized_item(RoleEnum.Banned, "read"),
         ]
 
         is_permitted = check_permission(authorized_list, permissions, "read")
