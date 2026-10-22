@@ -40,13 +40,6 @@ class User(Timestamps, Base):
 
     orders: Mapped[list[Order]] = relationship(back_populates="user")
 
-class UserRefreshToken(Timestamps, Base):
-    __tablename__: str = "users_refresh_tokens"
-
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), primary_key=True, nullable=False)
-    # user: Mapped[Adeeb] = relationship()
-    token_hash: Mapped[str] = mapped_column(String(length=512), nullable=False)
-
 
 class Adeeb(Timestamps, Base):
     __tablename__: str = "adeebs"
