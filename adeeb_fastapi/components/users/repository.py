@@ -129,7 +129,10 @@ async def update_user_by_id(id: UUID, data: component_schemas.UpdateUserById_Req
 
             if data.roles is not None:
                 try: # Clean roles from duplicates, and ensure Normal role exists
-                    existing_user.roles = list(set(data.roles))
+                    roles_set = set(data.roles)
+                    roles_set.remove(users_schemas.RoleEnum.Banned) # banning is only accessible in /users/{id}/ban route
+                    existing_user.roles = list(roles_set)
+                    existing_user.roles
                     _ = existing_user.roles.index(users_schemas.RoleEnum.Normal)
                 except ValueError:
                     existing_user.roles.append(users_schemas.RoleEnum.Normal)
