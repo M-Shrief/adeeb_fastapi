@@ -8,6 +8,7 @@ from enum import Enum
 
 # General Fields
 IDField = Annotated[UUID, Field()]
+IDField_Optional = Annotated[UUID | None, Field(default=None)]
 
 ReviewedField = Annotated[bool, Field(default=False)]
 ReviewedField_Optional= Annotated[bool | None, Field(default=None)]
@@ -35,6 +36,7 @@ ChosenVerseIDField_Optional = Annotated[UUID | None, Field(default=None)]
 
 ProseQouteIDField_Optional = Annotated[UUID | None, Field(default=None)]
 
+UserIDField = Annotated[UUID, Field()]
 UserIDField_Optional = Annotated[UUID | None, Field(default=None)]
 
 OrderIDField = Annotated[UUID, Field()]
