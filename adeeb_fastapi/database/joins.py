@@ -10,7 +10,7 @@ route():
     ...
 """
 
-from adeeb_fastapi.database.models import Adeeb as AdeebModel, Poem as PoemModel, ChosenVerses as ChosenVersesModel, ProseQoute as ProseQouteModel, Order as OrderModel, Print as PrintModel
+from adeeb_fastapi.database.models import Adeeb as AdeebModel, Poem as PoemModel, ChosenVerses as ChosenVersesModel, ProseQoute as ProseQouteModel, Order as OrderModel, Print as PrintModel, User as UserModel, JWT as JWTModel
 from sqlalchemy.orm import joinedload, selectinload
 
 # We use selectinload for One-to-Many & Many-to-Many relations -- like Users --> Orders
@@ -32,3 +32,5 @@ order_to_print = joinedload(PrintModel.order).load_only(OrderModel.id, OrderMode
 
 # Fullschema for prints
 prints_to_order = selectinload(OrderModel.prints)#.load_only(PrintModel.id)
+
+user_to_jwt = joinedload(JWTModel.user).load_only(UserModel.id, UserModel.username, UserModel.roles)

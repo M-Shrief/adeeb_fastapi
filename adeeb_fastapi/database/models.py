@@ -20,11 +20,6 @@ class Timestamps():
     created_at: Mapped[datetime] = mapped_column(DateTime(), server_default=text("CURRENT_TIMESTAMP"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(), server_default=text("CURRENT_TIMESTAMP"), onupdate=text("CURRENT_TIMESTAMP"))
 
-# from sqlalchemy.dialects import sqlite as sqlite_dialect
-# class IdField():
-#     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True).with_variant(sqlite_dialect.VARCHAR, "sqlite"), server_default=text("gen_random_uuid()"), primary_key=True, nullable=False)
-#    reviewed: Mapped[bool] = mapped_column(Boolean().with_variant(sqlite_dialect.INTEGER, "sqlite"),, default=False)
-
 # Enums
 roles_enum = Enum(RoleEnum.Analytics, RoleEnum.Normal, RoleEnum.DBA, RoleEnum.Management, RoleEnum.Banned, name="roles_enum")
 time_period_enum = Enum(TimePeriodEnum.JAHLI, TimePeriodEnum.AMOEI, TimePeriodEnum.ABASI, TimePeriodEnum.ANDALUSI, TimePeriodEnum.TURKISH_ERA, TimePeriodEnum.MODERN, TimePeriodEnum.UNDEFINED, name="time_period_enum")
