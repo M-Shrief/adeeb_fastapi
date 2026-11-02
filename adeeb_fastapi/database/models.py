@@ -8,6 +8,7 @@ from uuid import UUID
 from adeeb_fastapi.schemas.general import TimePeriodEnum,  OutfitTypeEnum
 from adeeb_fastapi.schemas.users import RoleEnum
 from adeeb_fastapi.schemas.orders import OrderStatusEnum
+from adeeb_fastapi.schemas.jwt import TokenTypeEnum
 
 
 class Base(DeclarativeBase):
@@ -29,6 +30,7 @@ roles_enum = Enum(RoleEnum.Analytics, RoleEnum.Normal, RoleEnum.DBA, RoleEnum.Ma
 time_period_enum = Enum(TimePeriodEnum.JAHLI, TimePeriodEnum.AMOEI, TimePeriodEnum.ABASI, TimePeriodEnum.ANDALUSI, TimePeriodEnum.TURKISH_ERA, TimePeriodEnum.MODERN, TimePeriodEnum.UNDEFINED, name="time_period_enum")
 outfit_type_enum = Enum(OutfitTypeEnum.TSHIRT_7, OutfitTypeEnum.TSHIRT_HALF, OutfitTypeEnum.TSHIRT_POLO,OutfitTypeEnum.SWEETSHIRT, OutfitTypeEnum.JACKET, OutfitTypeEnum.PULLOVER, name="outfit_type_enum")
 order_status_enum = Enum(OrderStatusEnum.IN_PROGRESS, OrderStatusEnum.COMPLETED, OrderStatusEnum.ABORTED, name="order_status_enum")
+token_type_enum = Enum(TokenTypeEnum.ACCESS, TokenTypeEnum.REFRESH, name="token_type_enum")
 
 class User(Timestamps, Base):
     __tablename__: str = "users"
@@ -40,6 +42,23 @@ class User(Timestamps, Base):
 
     orders: Mapped[list[Order]] = relationship(back_populates="user")
 
+class JWT(Base):
+    __tablename__: str = "jwts"
+    
+    jti: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), server_default=text("gen_random_uuid()"), primary_key=True, nullable=False)
+    # for rotation-chain revocation
+    family_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), nullable=False)
+    # used to ban all token from the family, if refresh token replayed again
+    used: Mapped[bool] = mapped_column(Boolean(), nullable=True, default=None)
+    is_banned: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=False)
+    token_type: Mapped[TokenTypeEnum] = mapped_column(Enum(TokenTypeEnum, name="token_type_enum", native_enum=True), nullable=False)
+    # Expire At
+    exp: Mapped[datetime] = mapped_column(DateTime(), nullable=False)
+    # Issued At
+    iat: Mapped[datetime] = mapped_column(DateTime(), nullable=False)
+    ### Relation
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), primary_key=True, nullable=False)
+    user: Mapped[User] = relationship()
 
 class Adeeb(Timestamps, Base):
     __tablename__: str = "adeebs"
