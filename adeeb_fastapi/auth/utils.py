@@ -49,18 +49,18 @@ async def write_ops_auth(request: Request, Authorization: Annotated[str | None, 
         if request.method in ["PUT", "POST", "PATCH", "DELETE"]:
         
             if Authorization is None:
-                raise errors.AuthError(errors.AuthError_ReasonEnum.HEADER, caused_in="route")
+                raise errors.AuthError(reason=errors.AuthError_ReasonEnum.HEADER, caused_in="route")
             
             claims, error = jwts.verify_jwt(Authorization[7:])
             if error is not None or claims is None:
-                raise errors.AuthError(errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="route")
+                raise errors.AuthError(reason=errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="route")
 
             if claims.permissions is None:
-                raise errors.AuthError(errors.AuthError_ReasonEnum.PERM, caused_in="route")
+                raise errors.AuthError(reason=errors.AuthError_ReasonEnum.PERM, caused_in="route")
 
             is_administrator = check_adminstration(claims.permissions, "write")
             if is_administrator is False:
-                raise errors.AuthError(errors.AuthError_ReasonEnum.PERM, caused_in="route")
+                raise errors.AuthError(reason=errors.AuthError_ReasonEnum.PERM, caused_in="route")
 
     except errors.AuthError as e:
         return errors.new_auth_error_response(e)

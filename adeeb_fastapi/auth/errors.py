@@ -21,9 +21,9 @@ class AuthError_ReasonEnum(str, Enum):
 
 class AuthError(APIError):
     """Standardized Error for Authentication & Authorization"""
-    def __init__(self, reason: AuthError_ReasonEnum, caused_in: Literal["repository", "service", "route"], message: str | None =None):
+    def __init__(self, caused_in: Literal["repository", "service", "route"], reason: AuthError_ReasonEnum | None = None, message: str | None =None):
         self.message: str | None = message
-        self.reason: AuthError_ReasonEnum = reason
+        self.reason: AuthError_ReasonEnum | None = reason
         self.caused_in: Literal["repository", "service", "route"] = caused_in
         super().__init__(status.HTTP_401_UNAUTHORIZED, self.caused_in)
 
