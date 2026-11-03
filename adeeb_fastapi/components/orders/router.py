@@ -1,11 +1,6 @@
-from adeeb_fastapi.schemas.api import GetAll_Res
-
-from adeeb_fastapi.components.orders.schemas import GetOrders_Res
-
 from fastapi import APIRouter, HTTPException, status, Depends, Query, Header
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, exc, delete, func
-from typing import Annotated, Literal
+from typing import Annotated
 from uuid import UUID
 from glide import GlideClient
 ###
@@ -13,12 +8,8 @@ from adeeb_fastapi.utils.errors import APIError
 from adeeb_fastapi.utils.logger import logger
 from adeeb_fastapi.utils import auth as auth_utils
 from adeeb_fastapi.database.index import get_async_db
-from adeeb_fastapi.database.models import Order as OrderModel, Print as PrintModel
-from adeeb_fastapi.database import joins
-from adeeb_fastapi.cache.index import get_async_cache, cache_get, cache_set, format_key_by_id
+from adeeb_fastapi.cache.index import get_async_cache
 from adeeb_fastapi.schemas import api as api_schemas
-from adeeb_fastapi.schemas.users import RoleEnum
-from adeeb_fastapi.schemas.orders import OrderStatusEnum
 from adeeb_fastapi.components.orders import schemas as component_schemas, service
 
 router = APIRouter(tags=["Orders"])
