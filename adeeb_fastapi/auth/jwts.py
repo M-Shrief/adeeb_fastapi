@@ -10,6 +10,57 @@ from adeeb_fastapi.schemas.users import RoleEnum
 from adeeb_fastapi.database.models import JWT as JWTModel
 from adeeb_fastapi.auth import errors
 
+def create_jwt(claims: jwt_schemas.Claims)->str:
+    if claims.token_type == "access":
+        token = jwt.encode(
+            payload=claims.model_dump(mode="json"),
+            key=access_jwt_config.private_key,
+            algorithm="RS256"
+        )
+    else: 
+        token = jwt.encode(
+            payload=claims.model_dump(mode="json",exclude_none= True),
+            key=refresh_jwt_config.private_key,
+            algorithm="RS256"
+            )
+
+    return token
+
+def verify_jwt(token: str, token_type: Literal["access", "refresh"] = "access") -> tuple[jwt_schemas.Claims, None] | tuple[None, errors.AuthError_ReasonEnum]:
+    """Verify JWT token with secret public key, also verifiy token claims like exp, iat...etc.
+
+    Note: it doesn't validate Token's permissions/roles for the request.
+    """
+    try:
+        # Decode JWT token
+        if token_type == "access": 
+            payload = jwt.decode(
+                jwt=token,
+                key=access_jwt_config.public_key,
+                algorithms=["RS256"],
+            )
+        else:
+            payload = jwt.decode(
+                jwt=token,
+                key=refresh_jwt_config.public_key,
+                algorithms=["RS256"],
+            )
+
+        # return payload, True
+
+        claims = jwt_schemas.Claims.model_validate(payload, extra="ignore")
+        return claims, None
+
+    except ValidationError:
+        return None, errors.AuthError_ReasonEnum.INVALID_CLAIMS
+    except jwt.exceptions.ExpiredSignatureError:
+        return None, errors.AuthError_ReasonEnum.EXPIRED
+    except jwt.exceptions.ImmatureSignatureError:
+        return None, errors.AuthError_ReasonEnum.IMMATURE
+    except jwt.exceptions.InvalidTokenError as e: # that's the base error for decode()
+        logger.error("Unknown error verifing JWT token", error=e)
+        return None, errors.AuthError_ReasonEnum.INVALID_TOKEN
+
 # Access & Refresh tokens exp field in minutes
 ACCESS_EXP_IN_MIN = 15
 REFRESH_EXP_IN_MIN = 60 * 24 * 7
