@@ -18,6 +18,7 @@ class AuthError_ReasonEnum(str, Enum):
     UNKNOWN = "Unkown error, try logging in again."
     # user-specific
     PERM = "User doesn't have the required permission"
+    INVALID_PASS = "Passwords is incorrect"
 
 class AuthError(APIError):
     """Standardized Error for Authentication & Authorization"""
