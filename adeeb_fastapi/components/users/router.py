@@ -19,7 +19,10 @@ router = APIRouter(tags=["Users"])
     "/users",
     status_code=status.HTTP_201_CREATED,
     response_model=api_schemas.GetAll_Res[component_schemas.GetUser_Res],
-    response_model_exclude_none=True    
+    responses={
+        401: {"model": auth_errors.AuthError_ResSchema, "description": "Unauthorized"}
+    },
+    response_model_exclude_none=True
 )
 async def get_users(queries: Annotated[api_schemas.SharedQueriesForGetManyRequests, Query()], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try: 
@@ -47,6 +50,9 @@ async def get_users(queries: Annotated[api_schemas.SharedQueriesForGetManyReques
     "/users/me",
     status_code=status.HTTP_201_CREATED,
     response_model=component_schemas.GetUser_Res,
+    responses={
+        401: {"model": auth_errors.AuthError_ResSchema, "description": "Unauthorized"}
+    },
     response_model_exclude_none=True    
 )
 async def get_current_user(db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
@@ -76,6 +82,9 @@ async def get_current_user(db: Annotated[AsyncSession, Depends(get_async_db)], A
     "/users/{id}",
     status_code=status.HTTP_201_CREATED,
     response_model=component_schemas.GetUser_Res,
+    responses={
+        401: {"model": auth_errors.AuthError_ResSchema, "description": "Unauthorized"}
+    },
     response_model_exclude_none=True    
 )
 async def get_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
@@ -130,6 +139,9 @@ async def signup(user: component_schemas.UserSignup_Req, cache: Annotated[GlideC
     "/users/login",
     status_code=status.HTTP_202_ACCEPTED,
     response_model=component_schemas.UserAuth_Res,
+    responses={
+        401: {"model": auth_errors.AuthError_ResSchema, "description": "Unauthorized"}
+    },
     response_model_exclude_none=True
 )
 async def login(user: component_schemas.UserLogin_Req, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)], response: Response):
@@ -156,6 +168,9 @@ async def login(user: component_schemas.UserLogin_Req, cache: Annotated[GlideCli
 @router.put(
     "/users/me",
     status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        401: {"model": auth_errors.AuthError_ResSchema, "description": "Unauthorized"}
+    },
 )
 async def update_current_user(data: component_schemas.UpdateCurrentUser_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
@@ -185,6 +200,9 @@ async def update_current_user(data: component_schemas.UpdateCurrentUser_Req, db:
 @router.put(
     "/users/{id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        401: {"model": auth_errors.AuthError_ResSchema, "description": "Unauthorized"}
+    },
 )
 async def update_user_by_id(id: UUID, data: component_schemas.UpdateUserById_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
@@ -213,6 +231,9 @@ async def update_user_by_id(id: UUID, data: component_schemas.UpdateUserById_Req
 @router.put(
     "/users/{id}/ban",
     status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        401: {"model": auth_errors.AuthError_ResSchema, "description": "Unauthorized"}
+    },
 )
 async def ban_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
@@ -240,6 +261,9 @@ async def ban_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async
 @router.delete(
     "/users/me",
     status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        401: {"model": auth_errors.AuthError_ResSchema, "description": "Unauthorized"}
+    },
 )
 async def delete_current_user(db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
@@ -266,6 +290,9 @@ async def delete_current_user(db: Annotated[AsyncSession, Depends(get_async_db)]
 @router.delete(
     "/users/{id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        401: {"model": auth_errors.AuthError_ResSchema, "description": "Unauthorized"}
+    },
 )
 async def delete_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
