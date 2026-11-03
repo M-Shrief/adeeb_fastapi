@@ -5,8 +5,8 @@ from uuid import UUID
 ###
 from adeeb_fastapi.utils.errors import APIError
 from adeeb_fastapi.utils.logger import logger
-from adeeb_fastapi.auth import jwts, errors as auth_errors, utils as auth_utils, passwords
-from adeeb_fastapi.schemas import api as api_schemas, orders as orders_schemas, users as users_schemas
+from adeeb_fastapi.auth import jwts, errors as auth_errors, utils as auth_utils
+from adeeb_fastapi.schemas import api as api_schemas, users as users_schemas
 from adeeb_fastapi.components.orders import repository, schemas as component_schemas
 
 async def get_all(queries: api_schemas.SharedQueriesForGetManyRequests, token: str, db: AsyncSession):
@@ -74,12 +74,15 @@ async def get_one_by_id(id: UUID, token: str, cache: GlideClient, db: AsyncSessi
         if claims.permissions is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
+        order = await repository.get_one_by_id(id, cache, db)
+
         is_administrator = auth_utils.check_adminstration(claims.permissions, "read")
         if is_administrator is False:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
+            is_owner = auth_utils.check_item_ownership(order.user_id, claims)
+            if is_owner is False:
+                raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
-        repo_result = await repository.get_one_by_id(id, cache, db)
-        return repo_result
+        return order
 
     except auth_errors.AuthError as e:
         raise e

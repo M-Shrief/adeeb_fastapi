@@ -6,7 +6,7 @@ from glide import GlideClient
 ###
 from adeeb_fastapi.utils.errors import APIError
 from adeeb_fastapi.utils.logger import logger
-from adeeb_fastapi.auth import errors as auth_errors, utils as auth_utils
+from adeeb_fastapi.auth import errors as auth_errors
 from adeeb_fastapi.database.index import get_async_db
 from adeeb_fastapi.cache.index import get_async_cache
 from adeeb_fastapi.schemas import api as api_schemas
