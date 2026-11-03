@@ -206,6 +206,13 @@ async def update_order(id: UUID, token: str, data: component_schemas.UpdateOrder
             if order.is_updateable is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
+            #  if it's updated by the owner, then remove admin's related fields -- aka assign them to undefine.
+            data.is_updateable = None
+            data.status = None
+            data.reviewed = None
+            data.user_id = None
+
+
         repo_result = await repository.update_order(id, order, data, cache, db)
         return repo_result
 
