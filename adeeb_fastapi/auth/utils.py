@@ -27,3 +27,35 @@ def check_item_ownership(item_owner_id: UUID | None, claims: Claims):
         return False
     else: # if it's owned by the user
         return True
+
+async def write_ops_auth(request: Request, Authorization: Annotated[str | None, Header()] = None):
+    """Require JWT authorization in write operations: POST - PUT - PATCH - DELETE
+    
+    Require the user to be: Management, Analytics or DBA.
+    """
+    try:
+        # Only process write operations
+        if request.method in ["PUT", "POST", "PATCH", "DELETE"]:
+        
+            if Authorization is None:
+                raise errors.AuthError(errors.AuthError_ReasonEnum.HEADER, caused_in="route")
+            
+            claims, error = jwts.verify_jwt(Authorization[7:])
+            if error is not None or claims is None:
+                raise errors.AuthError(errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="route")
+
+            if claims.permissions is None:
+                raise errors.AuthError(errors.AuthError_ReasonEnum.PERM, caused_in="route")
+
+            is_administrator = check_adminstration(claims.permissions, "write")
+            if is_administrator is False:
+                raise errors.AuthError(errors.AuthError_ReasonEnum.PERM, caused_in="route")
+
+    except errors.AuthError as e:
+        return errors.new_auth_error_response(e)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error("Error when checking authorization before write operation", request_url=request.url ,error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
+
