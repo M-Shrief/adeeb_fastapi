@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from adeeb_fastapi.database.index import async_engine
 from adeeb_fastapi.database.models import Base
 from adeeb_fastapi.components.users.router import router as users_router
+from adeeb_fastapi.components.users.jwt.router import router as jwt_router
 from adeeb_fastapi.components.orders.router import router as orders_router
 from adeeb_fastapi.components.adeebs.router import router as adeebs_router
 from adeeb_fastapi.components.poems.router import router as poems_router
@@ -61,7 +62,20 @@ app.add_middleware(
 
 app.add_middleware(SecurityHeadersMiddleware)   
 
-# non-component routes
+# # --- Global catch-all (last resort) ---
+# @app.exception_handler(Exception)
+# async def global_catch_all(request: Request, exc: Exception):
+#     logger.error(
+#         f"Unhandled exception on {request.method} {request.url.path}",
+#         exc_info=True,  # logs full traceback
+#     )
+#     return JSONResponse(
+#         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#         content={
+#             "error_code": "INTERNAL_ERROR",
+#             "message": "An unexpected error occurred. Please try again later.",
+#         },
+#     )   
 
 @app.get("/", status_code=status.HTTP_200_OK)
 async def homepage():    
@@ -99,6 +113,14 @@ app.include_router(
         Depends(rate_limiter.USERS_RATE_LIMIT)
     ],
     prefix="/api/v1"
+)
+
+app.include_router(
+    router=jwt_router,
+    dependencies=[
+        Depends(rate_limiter.JWT_RATE_LIMIT)
+    ],
+    prefix="/api/v1", 
 )
 
 app.include_router(

@@ -21,3 +21,7 @@ USERS_RATE_LIMIT=RateLimiter(
     callback=rate_limit_callback,
     )
 
+JWT_RATE_LIMIT=RateLimiter(
+    limiter=Limiter(Rate(300, Duration.SECOND * 60)), # nothing more than 30 requests in 1 minute
+    callback=rate_limit_callback,
+    )
