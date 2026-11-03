@@ -8,6 +8,17 @@ from adeeb_fastapi.schemas.jwt import Claims
 from adeeb_fastapi.auth import jwts, errors
 
 
+def set_refresh_token_cookie(response: Response, refresh_token: str):
+    """helper function to set refresh_token as a secure cookie to FastAPI response model"""
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,       # Prevents JavaScript access (XSS protection)
+        secure=True,         # Only sent over HTTPS
+        samesite="strict",   # Prevents CSRF attacks
+        max_age=60 * jwts.REFRESH_EXP_IN_MIN      # 1 weeks (in seconds)
+    )
+
 def check_adminstration(permissions: list[str], op: Literal["write", "read"]):
     authorized_list=[
         jwts.create_authorized_item(RoleEnum.Analytics, op),
