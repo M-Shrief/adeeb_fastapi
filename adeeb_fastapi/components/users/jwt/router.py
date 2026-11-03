@@ -35,7 +35,7 @@ async def get_jwts(queries: Annotated[api_schemas.SharedQueriesForGetManyRequest
 
         return response_result
     except auth_errors.AuthError as e:
-        return auth_errors.new_auth_error_response(e)
+        raise e
     except APIError as e:
         match e.status_code:
             case status.HTTP_401_UNAUTHORIZED:
@@ -68,7 +68,7 @@ async def get_family_jwts(family_id: UUID, queries: Annotated[api_schemas.Shared
 
         return response_result
     except auth_errors.AuthError as e:
-        return auth_errors.new_auth_error_response(e)
+        raise e
     except APIError as e:
         match e.status_code:
             case status.HTTP_401_UNAUTHORIZED:
@@ -101,7 +101,7 @@ async def get_user_jwts(user_id: UUID, queries: Annotated[api_schemas.SharedQuer
 
         return response_result
     except auth_errors.AuthError as e:
-        return auth_errors.new_auth_error_response(e)
+        raise e
     except APIError as e:
         match e.status_code:
             case status.HTTP_401_UNAUTHORIZED:
@@ -130,7 +130,7 @@ async def get_jwt_by_id(id: UUID, cache: Annotated[GlideClient, Depends(get_asyn
 
         return jwt
     except auth_errors.AuthError as e:
-        return auth_errors.new_auth_error_response(e)
+        raise e
     except APIError as e:
         match e.status_code:
             case status.HTTP_401_UNAUTHORIZED:
@@ -166,7 +166,7 @@ async def refresh(cache: Annotated[GlideClient, Depends(get_async_cache)], db: A
 
         return component_schemas.Refresh_Res_Body(access_token=access_token) 
     except auth_errors.AuthError as e:
-        return auth_errors.new_auth_error_response(e)
+        raise e
     except APIError as e:
         match e.status_code:
             case status.HTTP_401_UNAUTHORIZED:
@@ -193,7 +193,7 @@ async def update_jwt(id: UUID, data: component_schemas.UpdateOne_Req_Body, cache
 
         return 
     except auth_errors.AuthError as e:
-        return auth_errors.new_auth_error_response(e)
+        raise e
     except APIError as e:
         match e.status_code:
             case status.HTTP_401_UNAUTHORIZED:
@@ -225,7 +225,7 @@ async def ban_one_by_id(id: UUID, data: component_schemas.UpdateOne_Req_Body, ca
 
         return 
     except auth_errors.AuthError as e:
-        return auth_errors.new_auth_error_response(e)
+        raise e
     except APIError as e:
         match e.status_code:
             case status.HTTP_401_UNAUTHORIZED:
@@ -258,7 +258,7 @@ async def ban_family_jwts(family_id: UUID, cache: Annotated[GlideClient, Depends
 
         return 
     except auth_errors.AuthError as e:
-        return auth_errors.new_auth_error_response(e)
+        raise e
     except APIError as e:
         match e.status_code:
             case status.HTTP_401_UNAUTHORIZED:
@@ -288,7 +288,7 @@ async def ban_user_jwts(user_id: UUID, cache: Annotated[GlideClient, Depends(get
 
         return 
     except auth_errors.AuthError as e:
-        return auth_errors.new_auth_error_response(e)
+        raise e
     except APIError as e:
         match e.status_code:
             case status.HTTP_401_UNAUTHORIZED:
@@ -318,7 +318,7 @@ async def cleanup(cache: Annotated[GlideClient, Depends(get_async_cache)], db: A
 
         return
     except auth_errors.AuthError as e:
-        return auth_errors.new_auth_error_response(e)
+        raise e
     except APIError as e:
         match e.status_code:
             case status.HTTP_401_UNAUTHORIZED:
@@ -350,7 +350,7 @@ async def delete_jwt(id: UUID, cache: Annotated[GlideClient, Depends(get_async_c
 
         return
     except auth_errors.AuthError as e:
-        return auth_errors.new_auth_error_response(e)
+        raise e
     except APIError as e:
         match e.status_code:
             case status.HTTP_401_UNAUTHORIZED:
