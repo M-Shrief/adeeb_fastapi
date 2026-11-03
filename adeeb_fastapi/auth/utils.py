@@ -47,7 +47,6 @@ async def write_ops_auth(request: Request, Authorization: Annotated[str | None, 
     try:
         # Only process write operations
         if request.method in ["PUT", "POST", "PATCH", "DELETE"]:
-        
             if Authorization is None:
                 raise errors.AuthError(reason=errors.AuthError_ReasonEnum.HEADER, caused_in="route")
             
@@ -63,7 +62,7 @@ async def write_ops_auth(request: Request, Authorization: Annotated[str | None, 
                 raise errors.AuthError(reason=errors.AuthError_ReasonEnum.PERM, caused_in="route")
 
     except errors.AuthError as e:
-        return errors.new_auth_error_response(e)
+        raise e
     except HTTPException as e:
         raise e
     except Exception as e:
