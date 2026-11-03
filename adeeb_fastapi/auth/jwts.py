@@ -10,6 +10,65 @@ from adeeb_fastapi.schemas.users import RoleEnum
 from adeeb_fastapi.database.models import JWT as JWTModel
 from adeeb_fastapi.auth import errors
 
+# Access & Refresh tokens exp field in minutes
+ACCESS_EXP_IN_MIN = 15
+REFRESH_EXP_IN_MIN = 60 * 24 * 7
+
+def new_claims(user: jwt_schemas.Claims_User, model: JWTModel | None = None, schema: jwt_schemas.DescriptiveSchema | None = None, token_type: Literal["access", "refresh"] = "access"):
+    permissions = create_permissions(user.roles)
+
+    if model is not None:
+        exp= int(model.exp.timestamp())
+        iat= int(model.iat.timestamp())
+
+        if token_type == "access":
+            return jwt_schemas.Claims(
+                jti=model.jti,
+                user=user,
+                family_id=model.family_id,
+                permissions=permissions,
+                token_type=model.token_type,
+                exp=exp,
+                iat=iat,
+            )
+        else:
+            return jwt_schemas.Claims(
+                jti=model.jti,
+                user=None,
+                family_id=model.family_id,
+                permissions=None,
+                token_type=model.token_type,
+                exp=exp,
+                iat=iat,
+            )
+
+    elif schema is not None:
+        exp= int(schema.exp.timestamp())
+        iat= int(schema.iat.timestamp())
+        if token_type == "access":
+            return jwt_schemas.Claims(
+                jti=schema.jti,
+                user=user,
+                family_id=schema.family_id,
+                permissions=permissions,
+                token_type=schema.token_type,
+                exp=exp,
+                iat=exp,
+            )
+        else:
+            return jwt_schemas.Claims(
+                jti=schema.jti,
+                user=None,
+                family_id=schema.family_id,
+                permissions=None,
+                token_type=schema.token_type,
+                exp=exp,
+                iat=iat,
+            )
+
+    else:
+        return None
+
 # claims.permissions
 WRITE_PERM = ":write"  # write permission  
 READ_PERM = ":read" # read permission

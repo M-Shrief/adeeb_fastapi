@@ -44,3 +44,18 @@ class MinimalSchema(BaseModel):
     is_banned: IsBannedField_Optional
     # Relations
     user_id: general.UserIDField
+
+class Claims_User(BaseModel):
+    id: general.IDField
+    username: users.UsernameField
+    roles: users.RolesField
+    
+class Claims(BaseModel):
+    jti: general.IDField #token's id
+    family_id: general.IDField #token's id
+    user: Annotated[Claims_User | None, Field(default=None)]
+    permissions: Annotated[list[str] | None, Field(default=None)]
+    token_type: TokenTypeField
+    # have to be Numeric type, expressed in seconds. modify model/schema with int({exp | iat}.timestamp())
+    exp: Annotated[int, Field()] 
+    iat: Annotated[int, Field()]
