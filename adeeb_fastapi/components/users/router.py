@@ -27,7 +27,7 @@ router = APIRouter(tags=["Users"])
 async def get_users(queries: Annotated[api_schemas.SharedQueriesForGetManyRequests, Query()], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try: 
         if Authorization is None:
-            raise APIError(status.HTTP_401_UNAUTHORIZED, caused_in="route")
+            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.HEADER, caused_in="route")
 
         result = await service.get_all(queries, Authorization[7:], db)
 
@@ -58,7 +58,7 @@ async def get_users(queries: Annotated[api_schemas.SharedQueriesForGetManyReques
 async def get_current_user(db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try: 
         if Authorization is None:
-            raise APIError(status.HTTP_401_UNAUTHORIZED, caused_in="route")
+            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.HEADER, caused_in="route")
 
         result = await service.get_current_user(Authorization[7:], db)
 
@@ -90,7 +90,7 @@ async def get_current_user(db: Annotated[AsyncSession, Depends(get_async_db)], A
 async def get_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try: 
         if Authorization is None:
-            raise APIError(status.HTTP_401_UNAUTHORIZED, caused_in="route")
+            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.HEADER, caused_in="route")
 
         result = await service.get_one_by_id(id, Authorization[7:], db)
 
@@ -175,7 +175,7 @@ async def login(user: component_schemas.UserLogin_Req, cache: Annotated[GlideCli
 async def update_current_user(data: component_schemas.UpdateCurrentUser_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise APIError(status.HTTP_401_UNAUTHORIZED, caused_in="route")
+            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.HEADER, caused_in="route")
 
         await service.update_current_user(Authorization[7:], data, db)
  
@@ -207,7 +207,7 @@ async def update_current_user(data: component_schemas.UpdateCurrentUser_Req, db:
 async def update_user_by_id(id: UUID, data: component_schemas.UpdateUserById_Req, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise APIError(status.HTTP_401_UNAUTHORIZED, caused_in="route")
+            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.HEADER, caused_in="route")
 
         await service.update_user_by_id(id, Authorization[7:], data, db)
         return 
@@ -238,7 +238,7 @@ async def update_user_by_id(id: UUID, data: component_schemas.UpdateUserById_Req
 async def ban_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-             raise APIError(status.HTTP_401_UNAUTHORIZED, caused_in="route")
+             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.HEADER, caused_in="route")
         await service.ban_user_by_id(id, Authorization[7:], db)
 
         return 
@@ -268,7 +268,7 @@ async def ban_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async
 async def delete_current_user(db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise APIError(status.HTTP_401_UNAUTHORIZED, caused_in="route")
+            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.HEADER, caused_in="route")
 
         result = await service.delete_current_user(Authorization[7:], db)
         return result 
@@ -297,7 +297,7 @@ async def delete_current_user(db: Annotated[AsyncSession, Depends(get_async_db)]
 async def delete_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
-            raise APIError(status.HTTP_401_UNAUTHORIZED, caused_in="route")
+            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.HEADER, caused_in="route")
         result = await service.delete_one(id, Authorization[7:], db)
         return result 
     
