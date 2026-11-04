@@ -21,7 +21,7 @@ async def get_all(queries: api_schemas.SharedQueriesForGetManyRequests, token: s
         if claims.permissions is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "read")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "read")
         if is_administrator is False:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
@@ -76,7 +76,7 @@ async def get_one_by_id(id: UUID, token: str, db: AsyncSession):
         if claims.permissions is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "read")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "read")
         if is_administrator is False:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
@@ -164,7 +164,7 @@ async def update_user_by_id(id: UUID, token: str, data: component_schemas.Update
         if claims.permissions is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "write")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
@@ -188,7 +188,7 @@ async def ban_user_by_id(id: UUID, token: str, db: AsyncSession):
         if claims.permissions is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "write")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
@@ -242,7 +242,7 @@ async def delete_one(id: UUID, token: str, db: AsyncSession):
         if claims.permissions is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "write")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 

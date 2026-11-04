@@ -20,7 +20,7 @@ async def get_all(queries: api_schemas.SharedQueriesForGetManyRequests, token: s
         if claims.permissions is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "read")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "read")
         if is_administrator is False:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
@@ -44,7 +44,7 @@ async def get_one_by_id(id: UUID, token: str, cache: GlideClient, db: AsyncSessi
         if claims.permissions is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "write")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
@@ -98,7 +98,7 @@ async def update_one(id: UUID, token: str, data: component_schemas.UpdateOne_Req
         if claims.permissions is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "write")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
@@ -122,7 +122,7 @@ async def ban_one_by_id(id: UUID, token: str, cache: GlideClient, db: AsyncSessi
         if claims.permissions is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "write")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
@@ -147,7 +147,7 @@ async def ban_jwts_with_filters(token: str, cache: GlideClient, db: AsyncSession
         if claims.permissions is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "write")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
@@ -171,7 +171,7 @@ async def delete_one(id: UUID, token: str, cache: GlideClient, db: AsyncSession)
         if claims.permissions is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "write")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
@@ -196,7 +196,7 @@ async def cleanup(token: str, cache: GlideClient, db: AsyncSession):
         if claims.permissions is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "write")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 

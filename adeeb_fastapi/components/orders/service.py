@@ -18,7 +18,7 @@ async def get_all(queries: api_schemas.SharedQueriesForGetManyRequests, token: s
         if claims.permissions is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "read")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "read")
         if is_administrator is False:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
@@ -76,7 +76,7 @@ async def get_one_by_id(id: UUID, token: str, cache: GlideClient, db: AsyncSessi
 
         order = await repository.get_one_by_id(id, cache, db)
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "read")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "read")
         if is_administrator is False:
             is_owner = auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
@@ -112,7 +112,7 @@ async def create_many_orders(token: str, data: list[component_schemas.CreateOneO
         if claims.permissions is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "write")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
@@ -138,7 +138,7 @@ async def add_one_print(order_id: UUID, token: str, data: component_schemas.Prin
 
         order = await repository.get_one_by_id(order_id, cache, db)
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "write")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             is_owner = auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
@@ -168,7 +168,7 @@ async def add_many_print(order_id: UUID, token: str, data: list[component_schema
 
         order = await repository.get_one_by_id(order_id, cache, db)
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "write")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             is_owner = auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
@@ -198,7 +198,7 @@ async def update_order(id: UUID, token: str, data: component_schemas.UpdateOrder
 
         order = await repository.get_one_by_id(id, cache, db)
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "write")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             is_owner = auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
@@ -235,7 +235,7 @@ async def update_print(order_id: UUID, print_id: UUID, token: str, data: compone
 
         order = await repository.get_one_by_id(order_id, cache, db)
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "write")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             is_owner = auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
@@ -265,7 +265,7 @@ async def delete_order(id: UUID, token: str, cache: GlideClient, db: AsyncSessio
 
         order = await repository.get_one_by_id(id, cache, db)
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "write")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             is_owner = auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
@@ -295,7 +295,7 @@ async def delete_print(order_id: UUID, print_id: UUID, token: str, cache: GlideC
 
         order = await repository.get_one_by_id(order_id, cache, db)
 
-        is_administrator = auth_utils.check_adminstration(claims.permissions, "write")
+        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             is_owner = auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:

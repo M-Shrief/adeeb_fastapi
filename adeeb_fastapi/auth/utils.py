@@ -19,7 +19,7 @@ def set_refresh_token_cookie(response: Response, refresh_token: str):
         max_age=60 * jwts.REFRESH_EXP_IN_MIN      # 1 weeks (in seconds)
     )
 
-def check_adminstration(permissions: list[str], op: Literal["write", "read"]):
+def check_admin_permissions(permissions: list[str], op: Literal["write", "read"]):
     authorized_list=[
         jwts.create_authorized_item(RoleEnum.Analytics, op),
         jwts.create_authorized_item(RoleEnum.DBA, op),
@@ -57,7 +57,7 @@ async def write_ops_auth(request: Request, Authorization: Annotated[str | None, 
             if claims.permissions is None:
                 raise errors.AuthError(reason=errors.AuthError_ReasonEnum.PERM, caused_in="route")
 
-            is_administrator = check_adminstration(claims.permissions, "write")
+            is_administrator = check_admin_permissions(claims.permissions, "write")
             if is_administrator is False:
                 raise errors.AuthError(reason=errors.AuthError_ReasonEnum.PERM, caused_in="route")
 
