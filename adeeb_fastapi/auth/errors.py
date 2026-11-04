@@ -4,7 +4,7 @@ from enum import Enum
 from typing import Literal, Annotated
 from pydantic import BaseModel, Field
 ##
-from adeeb_fastapi.utils.errors import APIError
+from adeeb_fastapi.utils.errors import APIError, CausedIn
 
 class AuthError_ReasonEnum(str, Enum):
     # token-specific
@@ -22,10 +22,10 @@ class AuthError_ReasonEnum(str, Enum):
 
 class AuthError(APIError):
     """Standardized Error for Authentication & Authorization"""
-    def __init__(self, caused_in: Literal["repository", "service", "route"], reason: AuthError_ReasonEnum | None = None, message: str | None =None):
+    def __init__(self, caused_in: CausedIn, reason: AuthError_ReasonEnum | None = None, message: str | None =None):
         self.message: str | None = message
         self.reason: AuthError_ReasonEnum | None = reason
-        self.caused_in: Literal["repository", "service", "route"] = caused_in
+        self.caused_in: CausedIn = caused_in
         super().__init__(status.HTTP_401_UNAUTHORIZED, self.caused_in)
 
 class AuthError_ResSchema(BaseModel):
