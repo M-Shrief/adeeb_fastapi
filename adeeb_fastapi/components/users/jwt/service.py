@@ -8,7 +8,7 @@ from adeeb_fastapi.utils.errors import APIError
 from adeeb_fastapi.auth import jwts, errors as auth_errors, utils as auth_utils
 from adeeb_fastapi.schemas import api as api_schemas, jwt as jwt_schemas
 from adeeb_fastapi.components.users.jwt import repository, schemas as component_schemas
-
+from adeeb_fastapi.components.users import repository as user_repository
 
 
 async def get_all(queries: api_schemas.SharedQueriesForGetManyRequests, token: str, db: AsyncSession, family_id: UUID | None = None, user_id: UUID | None = None):
@@ -73,6 +73,9 @@ async def refresh(token: str, cache: GlideClient, db: AsyncSession):
             _ = await repository.ban_jwts_with_filters(cache, db, family_id=token_data.family_id)
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.USED, caused_in="service")
         else:
+            # After checking that the refresh token and it's family isn't banned,
+            # We need to be careful if user's roles & permissions was changed, like if he was banned.
+            # That's why we join the user data when querying the token. 
             claims_user = jwt_schemas.Claims_User(id=token_data.user.id, username=token_data.user.username, roles=token_data.user.roles)
             access_token, refresh_token = await repository.new_tokens(claims_user, cache, db, token_data.family_id)
 

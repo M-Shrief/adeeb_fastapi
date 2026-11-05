@@ -113,14 +113,12 @@ async def get_one_by_id(id: UUID, cache: GlideClient, db: AsyncSession):
         cache_res = await cache_get(cache_key, cache)
         if cache_res is not None:
             jwt = component_schemas.GetOne_Res_Body.model_validate(cache_res, from_attributes=True)
-            logger.info("cache")
         else: # we don't set new tokes o
             stmt = select(JWTModel).where(JWTModel.jti == id)
             stmt = stmt.options(joins.user_to_jwt)
             res = await db.scalars(statement=stmt)
             jwt = res.unique().one()
             jwt = component_schemas.GetOne_Res_Body.model_validate(jwt, from_attributes=True)
-            logger.info("db")
 
         return jwt
     except exc.NoResultFound:
@@ -129,14 +127,14 @@ async def get_one_by_id(id: UUID, cache: GlideClient, db: AsyncSession):
         logger.error(f"Error in getting jwt:{id}", error=e, caused_in="repository")
         raise APIError(status_code=status.HTTP_400_BAD_REQUEST, caused_in="repository")
 
-async def is_banned(id: UUID, cache: GlideClient, db: AsyncSession)-> bool:
-    """Used Internally only"""
-    try:
-        jwt_token = await get_one_by_id(id, cache, db)
-        return jwt_token.is_banned
+# async def is_banned(id: UUID, cache: GlideClient, db: AsyncSession)-> bool:
+#     """Used Internally only"""
+#     try:
+#         jwt_token = await get_one_by_id(id, cache, db)
+#         return jwt_token.is_banned
         
-    except APIError:
-        return False
+#     except APIError:
+#         return False
 
 async def update_one(id: UUID, data: component_schemas.UpdateOne_Req_Body, cache: GlideClient, db: AsyncSession):
     try:
