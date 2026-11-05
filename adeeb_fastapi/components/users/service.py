@@ -179,7 +179,7 @@ async def update_user_by_id(id: UUID, token: str, data: component_schemas.Update
         logger.error(f"Error in PUT /users/{id}", error=e, caused_in="service")
         raise APIError(status.HTTP_400_BAD_REQUEST, caused_in="service")
 
-async def ban_user_by_id(id: UUID, token: str, db: AsyncSession):
+async def ban_user_by_id(id: UUID, token: str, cache: GlideClient, db: AsyncSession):
     try: 
         claims, error = jwts.verify_jwt(token)
         if error is not None or claims is None:
@@ -192,7 +192,11 @@ async def ban_user_by_id(id: UUID, token: str, db: AsyncSession):
         if is_administrator is False:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
+        if claims.user is not None:
+            await jwt_repository.ban_jwts_with_filters(cache, db, user_id=id, family_id=None)
+
         await repository.ban_user_by_id(id, db)
+
         return
 
     except auth_errors.AuthError as e:
@@ -203,7 +207,7 @@ async def ban_user_by_id(id: UUID, token: str, db: AsyncSession):
         logger.error(f"Error in PUT /users/{id}/ban", error=e, caused_in="service")
         raise APIError(status.HTTP_400_BAD_REQUEST, caused_in="service")
 
-async def delete_current_user(token: str, db: AsyncSession):
+async def delete_current_user(token: str, cache: GlideClient, db: AsyncSession):
     try:
         claims, error = jwts.verify_jwt(token)
         if error is not None or claims is None:
@@ -223,6 +227,7 @@ async def delete_current_user(token: str, db: AsyncSession):
         if claims.user is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_CLAIMS, caused_in="service")
 
+        await jwt_repository.delete_user_jwts(claims.user.id, cache, db)
         await repository.delete_one(claims.user.id, db)
         return
 
@@ -233,7 +238,7 @@ async def delete_current_user(token: str, db: AsyncSession):
     except Exception as e:
         raise APIError(status_code=status.HTTP_400_BAD_REQUEST, caused_in="service")
 
-async def delete_one(id: UUID, token: str, db: AsyncSession):
+async def delete_one(id: UUID, token: str, cache: GlideClient, db: AsyncSession):
     try:
         claims, error = jwts.verify_jwt(token)
         if error is not None or claims is None:
@@ -246,6 +251,7 @@ async def delete_one(id: UUID, token: str, db: AsyncSession):
         if is_administrator is False:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
+        await jwt_repository.delete_user_jwts(id, cache, db)
         await repository.delete_one(id, db)
         return
 

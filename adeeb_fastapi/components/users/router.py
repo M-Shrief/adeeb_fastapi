@@ -235,11 +235,11 @@ async def update_user_by_id(id: UUID, data: component_schemas.UpdateUserById_Req
         401: {"model": auth_errors.AuthError_ResSchema, "description": "Unauthorized"}
     },
 )
-async def ban_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+async def ban_user_by_id(id: UUID, cache: Annotated[GlideClient, Depends(get_async_cache)],db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
              raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.HEADER, caused_in="route")
-        await service.ban_user_by_id(id, Authorization[7:], db)
+        await service.ban_user_by_id(id, Authorization[7:], cache, db)
 
         return 
 
@@ -265,12 +265,12 @@ async def ban_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async
         401: {"model": auth_errors.AuthError_ResSchema, "description": "Unauthorized"}
     },
 )
-async def delete_current_user(db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+async def delete_current_user(cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.HEADER, caused_in="route")
 
-        result = await service.delete_current_user(Authorization[7:], db)
+        result = await service.delete_current_user(Authorization[7:], cache, db)
         return result 
     
     except auth_errors.AuthError as e:
@@ -294,11 +294,11 @@ async def delete_current_user(db: Annotated[AsyncSession, Depends(get_async_db)]
         401: {"model": auth_errors.AuthError_ResSchema, "description": "Unauthorized"}
     },
 )
-async def delete_user_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
+async def delete_user_by_id(id: UUID, cache: Annotated[GlideClient, Depends(get_async_cache)], db: Annotated[AsyncSession, Depends(get_async_db)], Authorization: Annotated[str | None, Header()] = None):
     try:
         if Authorization is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.HEADER, caused_in="route")
-        result = await service.delete_one(id, Authorization[7:], db)
+        result = await service.delete_one(id, Authorization[7:], cache, db)
         return result 
     
     except auth_errors.AuthError as e:

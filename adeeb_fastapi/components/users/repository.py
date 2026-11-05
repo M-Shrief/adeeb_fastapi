@@ -8,7 +8,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from adeeb_fastapi.utils.errors import APIError
 from adeeb_fastapi.utils.logger import logger
 from adeeb_fastapi.utils import auth as auth_utils
-from adeeb_fastapi.database.models import User as UserModel, roles_enum
+from adeeb_fastapi.database.models import User as UserModel
 from adeeb_fastapi.schemas import users as users_schemas, api as api_schemas
 from adeeb_fastapi.components.users import schemas as component_schemas
 
