@@ -207,6 +207,7 @@ async def ban_jwts_with_filters(cache: GlideClient, db: AsyncSession, family_id:
             stmt = stmt.where(JWTModel.family_id == family_id)
         if user_id is not None:
             stmt = stmt.where(JWTModel.user_id == user_id)
+
         _ = await db.execute(stmt)
         _ = await db.commit()
         return
@@ -215,6 +216,38 @@ async def ban_jwts_with_filters(cache: GlideClient, db: AsyncSession, family_id:
         raise e
     except Exception as e:
         logger.error(f"Error in banning family tokens, family_id:{family_id}", error=e, caused_in="repository")
+        raise APIError(status_code=status.HTTP_400_BAD_REQUEST, caused_in="repository")
+
+
+async def delete_user_jwts(user_id: UUID, cache: GlideClient, db: AsyncSession):
+    try:
+        stmt = select(JWTModel).where(JWTModel.user_id == user_id)
+        resp  = await db.execute(stmt)
+        rows = resp.scalars()
+
+        cache_keys: list[TEncodable] = [] 
+        # First delete user's token in cache
+        for token in rows:
+            cache_key = format_key_by_id("jwts", token.jti)
+            cache_keys.append(cache_key)
+
+        # if there's no token for the user, then raise 404 APIError
+        if len(cache_keys) == 0:
+            raise APIError(status_code=status.HTTP_404_NOT_FOUND, caused_in="repository")
+
+        # Delete all tokens from cache
+        _ = await cache.delete(cache_keys)
+
+
+        # Delete user's jwt tokens
+        stmt = delete(JWTModel).where(JWTModel.user_id == user_id)
+        _ = await db.execute(statement=stmt)
+        await db.commit()
+
+    except APIError as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error in banning user tokens, user_id:{user_id}", error=e, caused_in="repository")
         raise APIError(status_code=status.HTTP_400_BAD_REQUEST, caused_in="repository")
 
 async def delete_one(id: UUID, cache: GlideClient, db: AsyncSession):
