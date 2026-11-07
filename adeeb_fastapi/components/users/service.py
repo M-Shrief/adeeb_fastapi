@@ -5,7 +5,7 @@ from glide import GlideClient
 ###
 from adeeb_fastapi.utils.errors import APIError
 from adeeb_fastapi.utils.logger import logger
-from adeeb_fastapi.auth import jwts, errors as auth_errors, utils as auth_utils, passwords
+from adeeb_fastapi.auth import errors as auth_errors, utils as auth_utils, passwords
 from adeeb_fastapi.schemas import api as api_schemas, users as users_schemas, jwt as  jwt_schemas
 from adeeb_fastapi.components.users import repository, schemas as component_schemas
 from adeeb_fastapi.components.users.jwt import repository as jwt_repository

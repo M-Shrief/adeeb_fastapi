@@ -52,17 +52,8 @@ async def write_ops_auth(request: Request, Authorization: Annotated[str | None, 
         if request.method in ["PUT", "POST", "PATCH", "DELETE"]:
             if Authorization is None:
                 raise errors.AuthError(reason=errors.AuthError_ReasonEnum.HEADER, caused_in="middleware")
-            
-            claims, error = jwts.verify_jwt(Authorization[7:])
-            if error is not None or claims is None:
-                raise errors.AuthError(reason=errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="middleware")
-
-            if claims.permissions is None:
-                raise errors.AuthError(reason=errors.AuthError_ReasonEnum.PERM, caused_in="middleware")
-
-            is_administrator = check_admin_permissions(claims.permissions, "write")
-            if is_administrator is False:
-                raise errors.AuthError(reason=errors.AuthError_ReasonEnum.PERM, caused_in="middleware")
+        
+            _ = await verifying_admin_user(Authorization[7:], "write", "service")
 
     except errors.AuthError as e:
         raise e
