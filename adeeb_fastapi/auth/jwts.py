@@ -10,6 +10,8 @@ from adeeb_fastapi.schemas.users import RoleEnum
 from adeeb_fastapi.database.models import JWT as JWTModel
 from adeeb_fastapi.auth import errors
 
+
+
 def create_jwt(claims: jwt_schemas.Claims)->str:
     if claims.token_type == "access":
         token = jwt.encode(
@@ -26,14 +28,14 @@ def create_jwt(claims: jwt_schemas.Claims)->str:
 
     return token
 
-def verify_jwt(token: str, token_type: Literal["access", "refresh"] = "access") -> tuple[jwt_schemas.Claims, None] | tuple[None, errors.AuthError_ReasonEnum]:
+def verify_jwt(token: str, token_type: jwt_schemas.TokenTypeEnum = jwt_schemas.TokenTypeEnum.ACCESS) -> tuple[jwt_schemas.Claims, None] | tuple[None, errors.AuthError_ReasonEnum]:
     """Verify JWT token with secret public key, also verifiy token claims like exp, iat...etc.
 
     Note: it doesn't validate Token's permissions/roles for the request.
     """
     try:
         # Decode JWT token
-        if token_type == "access": 
+        if token_type == jwt_schemas.TokenTypeEnum.ACCESS: 
             payload = jwt.decode(
                 jwt=token,
                 key=access_jwt_config.public_key,
@@ -65,14 +67,14 @@ def verify_jwt(token: str, token_type: Literal["access", "refresh"] = "access") 
 ACCESS_EXP_IN_MIN = 15
 REFRESH_EXP_IN_MIN = 60 * 24 * 7
 
-def new_claims(user: jwt_schemas.Claims_User, model: JWTModel | None = None, schema: jwt_schemas.DescriptiveSchema | None = None, token_type: Literal["access", "refresh"] = "access"):
+def new_claims(user: jwt_schemas.Claims_User, model: JWTModel | None = None, schema: jwt_schemas.DescriptiveSchema | None = None):
     permissions = create_permissions(user.roles)
 
     if model is not None:
         exp= int(model.exp.timestamp())
         iat= int(model.iat.timestamp())
 
-        if token_type == "access":
+        if model.token_type == jwt_schemas.TokenTypeEnum.ACCESS:
             return jwt_schemas.Claims(
                 jti=model.jti,
                 user=user,
@@ -96,7 +98,7 @@ def new_claims(user: jwt_schemas.Claims_User, model: JWTModel | None = None, sch
     elif schema is not None:
         exp= int(schema.exp.timestamp())
         iat= int(schema.iat.timestamp())
-        if token_type == "access":
+        if schema.token_type == jwt_schemas.TokenTypeEnum.ACCESS:
             return jwt_schemas.Claims(
                 jti=schema.jti,
                 user=user,

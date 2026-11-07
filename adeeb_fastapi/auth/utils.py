@@ -5,7 +5,7 @@ from typing import Annotated
 from adeeb_fastapi.utils.logger import logger
 from adeeb_fastapi.utils.errors import CausedIn
 from adeeb_fastapi.schemas.users import RoleEnum
-from adeeb_fastapi.schemas.jwt import Claims
+from adeeb_fastapi.schemas.jwt import Claims, TokenTypeEnum
 from adeeb_fastapi.auth import jwts, errors
 
 
@@ -64,9 +64,9 @@ async def write_ops_auth(request: Request, Authorization: Annotated[str | None, 
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
 
-async def verifying_admin_user(token: str, op: jwts.OP, caused_in: CausedIn):
+async def verifying_admin_user(token: str, op: jwts.OP, caused_in: CausedIn, token_type: TokenTypeEnum = TokenTypeEnum.ACCESS):
     """Verify JWT token for an admin, returns token's claims or raise AuthError"""
-    claims, error = jwts.verify_jwt(token)
+    claims, error = jwts.verify_jwt(token, token_type)
     if error is not None or claims is None:
         raise errors.AuthError(reason=errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in=caused_in)
 
@@ -80,8 +80,8 @@ async def verifying_admin_user(token: str, op: jwts.OP, caused_in: CausedIn):
     return claims
 
 
-async def verifying_normal_user(token: str, op: jwts.OP, caused_in: CausedIn):
-    claims, error = jwts.verify_jwt(token)
+async def verifying_normal_user(token: str, op: jwts.OP, caused_in: CausedIn, token_type: TokenTypeEnum = TokenTypeEnum.ACCESS):
+    claims, error = jwts.verify_jwt(token, token_type)
     if error is not None or claims is None:
         raise errors.AuthError(reason=errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in=caused_in)
 
