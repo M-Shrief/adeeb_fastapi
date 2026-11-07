@@ -1,5 +1,4 @@
 from fastapi import FastAPI, status, Depends, Request
-from fastapi.responses import JSONResponse
 from scalar_fastapi import get_scalar_api_reference # pyright:ignore[reportUnknownVariableType]
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -17,7 +16,6 @@ from adeeb_fastapi.components.chosen_verses.router import router as chosen_verse
 from adeeb_fastapi.components.prose_qoutes.router import router as prose_qoutes_router
 from adeeb_fastapi.schemas import api  as api_schemas
 from adeeb_fastapi.utils import rate_limiter
-# from adeeb_fastapi.utils.auth import write_ops_auth
 from adeeb_fastapi.auth.utils import write_ops_auth
 from adeeb_fastapi.auth.errors import new_auth_error_response, AuthError
 from adeeb_fastapi.utils.middlewares import SecurityHeadersMiddleware

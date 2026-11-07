@@ -7,7 +7,7 @@ from sqlalchemy.orm.attributes import flag_modified
 ###
 from adeeb_fastapi.utils.errors import APIError
 from adeeb_fastapi.utils.logger import logger
-from adeeb_fastapi.utils import auth as auth_utils
+from adeeb_fastapi.auth import passwords
 from adeeb_fastapi.database.models import User as UserModel
 from adeeb_fastapi.schemas import users as users_schemas, api as api_schemas
 from adeeb_fastapi.components.users import schemas as component_schemas
@@ -46,7 +46,7 @@ async def get_one_by_id(id: UUID, db: AsyncSession):
 async def signup(user: component_schemas.UserSignup_Req, db: AsyncSession):
     try:
         new_user = UserModel(**user.model_dump())
-        new_user.password = auth_utils.hash_password(new_user.password)
+        new_user.password = await passwords.hash_password(new_user.password)
 
         try: # Clean roles from duplicates, and ensure Normal role exists
             new_user.roles = list(set(new_user.roles))
@@ -93,7 +93,7 @@ async def update_current_user(id: UUID, data: component_schemas.UpdateCurrentUse
                 existing_user.username = data.username
 
             if data.password is not None:
-                hashed_password = auth_utils.hash_password(data.password)
+                hashed_password = await passwords.hash_password(data.password)
                 existing_user.password = hashed_password
 
             await db.commit()
@@ -124,7 +124,7 @@ async def update_user_by_id(id: UUID, data: component_schemas.UpdateUserById_Req
                 existing_user.username = data.username
 
             if data.password is not None:
-                hashed_password = auth_utils.hash_password(data.password)
+                hashed_password = await passwords.hash_password(data.password)
                 existing_user.password = hashed_password
 
             if data.roles is not None:

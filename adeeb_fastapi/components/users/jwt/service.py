@@ -42,7 +42,7 @@ async def get_one_by_id(id: UUID, token: str, cache: GlideClient, db: AsyncSessi
 
 async def refresh(token: str, cache: GlideClient, db: AsyncSession):
     try:
-        claims, error = jwts.verify_jwt(token, jwt_schemas.TokenTypeEnum.REFRESH)
+        claims, error = await jwts.verify_jwt(token, jwt_schemas.TokenTypeEnum.REFRESH)
         if error is not None or claims is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
 

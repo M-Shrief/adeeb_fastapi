@@ -45,7 +45,7 @@ async def get_user_orders(queries: api_schemas.SharedQueriesForGetManyRequests, 
 
 async def get_one_by_id(id: UUID, token: str, cache: GlideClient, db: AsyncSession):
     try:
-        claims, error = jwts.verify_jwt(token)
+        claims, error = await jwts.verify_jwt(token)
         if error is not None or claims is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
 
@@ -54,12 +54,12 @@ async def get_one_by_id(id: UUID, token: str, cache: GlideClient, db: AsyncSessi
 
         order = await repository.get_one_by_id(id, cache, db)
 
-        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "read")
+        is_administrator = await auth_utils.check_admin_permissions(claims.permissions, "read")
         if is_administrator is False:
-            is_owner = auth_utils.check_item_ownership(order.user_id, claims)
+            is_owner = await auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            is_banned = jwts.check_if_banned(claims.permissions, "read")
+            is_banned = await jwts.check_if_banned(claims.permissions, "read")
             if is_banned:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
@@ -101,7 +101,7 @@ async def create_many_orders(token: str, data: list[component_schemas.CreateOneO
 
 async def add_one_print(order_id: UUID, token: str, data: component_schemas.PrintItem_Req, cache: GlideClient, db: AsyncSession):
     try:
-        claims, error = jwts.verify_jwt(token)
+        claims, error = await jwts.verify_jwt(token)
         if error is not None or claims is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
 
@@ -110,14 +110,14 @@ async def add_one_print(order_id: UUID, token: str, data: component_schemas.Prin
 
         order = await repository.get_one_by_id(order_id, cache, db)
 
-        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
+        is_administrator = await auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             if order.is_updateable is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            is_owner = auth_utils.check_item_ownership(order.user_id, claims)
+            is_owner = await auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            is_banned = jwts.check_if_banned(claims.permissions, "write")
+            is_banned = await jwts.check_if_banned(claims.permissions, "write")
             if is_banned:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
@@ -135,7 +135,7 @@ async def add_one_print(order_id: UUID, token: str, data: component_schemas.Prin
 
 async def add_many_print(order_id: UUID, token: str, data: list[component_schemas.PrintItem_Req], cache: GlideClient, db: AsyncSession):
     try:
-        claims, error = jwts.verify_jwt(token)
+        claims, error = await jwts.verify_jwt(token)
         if error is not None or claims is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
 
@@ -144,14 +144,14 @@ async def add_many_print(order_id: UUID, token: str, data: list[component_schema
 
         order = await repository.get_one_by_id(order_id, cache, db)
 
-        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
+        is_administrator = await auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             if order.is_updateable is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            is_owner = auth_utils.check_item_ownership(order.user_id, claims)
+            is_owner = await auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            is_banned = jwts.check_if_banned(claims.permissions, "write")
+            is_banned = await jwts.check_if_banned(claims.permissions, "write")
             if is_banned:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
@@ -168,7 +168,7 @@ async def add_many_print(order_id: UUID, token: str, data: list[component_schema
 
 async def update_order(id: UUID, token: str, data: component_schemas.UpdateOrder_Req, cache: GlideClient, db: AsyncSession):
     try:
-        claims, error = jwts.verify_jwt(token)
+        claims, error = await jwts.verify_jwt(token)
         if error is not None or claims is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
 
@@ -177,14 +177,14 @@ async def update_order(id: UUID, token: str, data: component_schemas.UpdateOrder
 
         order = await repository.get_one_by_id(id, cache, db)
 
-        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
+        is_administrator = await auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             if order.is_updateable is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            is_owner = auth_utils.check_item_ownership(order.user_id, claims)
+            is_owner = await auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            is_banned = jwts.check_if_banned(claims.permissions, "write")
+            is_banned = await jwts.check_if_banned(claims.permissions, "write")
             if is_banned:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
@@ -208,7 +208,7 @@ async def update_order(id: UUID, token: str, data: component_schemas.UpdateOrder
 
 async def update_print(order_id: UUID, print_id: UUID, token: str, data: component_schemas.UpdatePrint_Req, cache: GlideClient, db: AsyncSession):
     try:
-        claims, error = jwts.verify_jwt(token)
+        claims, error = await jwts.verify_jwt(token)
         if error is not None or claims is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
 
@@ -217,14 +217,14 @@ async def update_print(order_id: UUID, print_id: UUID, token: str, data: compone
 
         order = await repository.get_one_by_id(order_id, cache, db)
 
-        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
+        is_administrator = await auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             if order.is_updateable is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            is_owner = auth_utils.check_item_ownership(order.user_id, claims)
+            is_owner = await auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            is_banned = jwts.check_if_banned(claims.permissions, "write")
+            is_banned = await jwts.check_if_banned(claims.permissions, "write")
             if is_banned:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
@@ -241,7 +241,7 @@ async def update_print(order_id: UUID, print_id: UUID, token: str, data: compone
 
 async def delete_order(id: UUID, token: str, cache: GlideClient, db: AsyncSession):
     try:
-        claims, error = jwts.verify_jwt(token)
+        claims, error = await jwts.verify_jwt(token)
         if error is not None or claims is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
 
@@ -250,14 +250,14 @@ async def delete_order(id: UUID, token: str, cache: GlideClient, db: AsyncSessio
 
         order = await repository.get_one_by_id(id, cache, db)
 
-        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
+        is_administrator = await auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             if order.is_updateable is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            is_owner = auth_utils.check_item_ownership(order.user_id, claims)
+            is_owner = await auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            is_banned = jwts.check_if_banned(claims.permissions, "write")
+            is_banned = await jwts.check_if_banned(claims.permissions, "write")
             if is_banned:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
@@ -274,7 +274,7 @@ async def delete_order(id: UUID, token: str, cache: GlideClient, db: AsyncSessio
 
 async def delete_print(order_id: UUID, print_id: UUID, token: str, cache: GlideClient, db: AsyncSession):
     try:
-        claims, error = jwts.verify_jwt(token)
+        claims, error = await jwts.verify_jwt(token)
         if error is not None or claims is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
 
@@ -283,14 +283,14 @@ async def delete_print(order_id: UUID, print_id: UUID, token: str, cache: GlideC
 
         order = await repository.get_one_by_id(order_id, cache, db)
 
-        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
+        is_administrator = await auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
             if order.is_updateable is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            is_owner = auth_utils.check_item_ownership(order.user_id, claims)
+            is_owner = await auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            is_banned = jwts.check_if_banned(claims.permissions, "write")
+            is_banned = await jwts.check_if_banned(claims.permissions, "write")
             if is_banned:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
