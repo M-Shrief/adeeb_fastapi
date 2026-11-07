@@ -8,21 +8,11 @@ from adeeb_fastapi.utils.errors import APIError
 from adeeb_fastapi.auth import jwts, errors as auth_errors, utils as auth_utils
 from adeeb_fastapi.schemas import api as api_schemas, jwt as jwt_schemas
 from adeeb_fastapi.components.users.jwt import repository, schemas as component_schemas
-from adeeb_fastapi.components.users import repository as user_repository
 
 
 async def get_all(queries: api_schemas.SharedQueriesForGetManyRequests, token: str, db: AsyncSession, family_id: UUID | None = None, user_id: UUID | None = None):
     try:
-        claims, error = jwts.verify_jwt(token)
-        if error is not None or claims is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
-
-        if claims.permissions is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-
-        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "read")
-        if is_administrator is False:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
+        _ = await auth_utils.verifying_admin_user(token, "read", "service")
 
         repo_result = await repository.get_all(queries, db, family_id=family_id, user_id=user_id)
         return repo_result
@@ -37,17 +27,7 @@ async def get_all(queries: api_schemas.SharedQueriesForGetManyRequests, token: s
 
 async def get_one_by_id(id: UUID, token: str, cache: GlideClient, db: AsyncSession):
     try:
-        claims, error = jwts.verify_jwt(token)
-        if error is not None or claims is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
-
-        if claims.permissions is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-
-        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
-        if is_administrator is False:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-
+        _ = await auth_utils.verifying_admin_user(token, "read", "service")
 
         result = await repository.get_one_by_id(id, cache, db)
         return result
@@ -62,7 +42,7 @@ async def get_one_by_id(id: UUID, token: str, cache: GlideClient, db: AsyncSessi
 
 async def refresh(token: str, cache: GlideClient, db: AsyncSession):
     try:
-        claims, error = jwts.verify_jwt(token, "refresh")
+        claims, error = jwts.verify_jwt(token, jwt_schemas.TokenTypeEnum.REFRESH)
         if error is not None or claims is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
 
@@ -94,16 +74,7 @@ async def refresh(token: str, cache: GlideClient, db: AsyncSession):
 
 async def update_one(id: UUID, token: str, data: component_schemas.UpdateOne_Req_Body, cache: GlideClient, db: AsyncSession):
     try: 
-        claims, error = jwts.verify_jwt(token)
-        if error is not None or claims is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
-
-        if claims.permissions is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-
-        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
-        if is_administrator is False:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
+        _ = await auth_utils.verifying_admin_user(token, "write", "service")
 
         result = await repository.update_one(id, data, cache, db)
         return result
@@ -118,16 +89,7 @@ async def update_one(id: UUID, token: str, data: component_schemas.UpdateOne_Req
 
 async def ban_one_by_id(id: UUID, token: str, cache: GlideClient, db: AsyncSession):
     try: 
-        claims, error = jwts.verify_jwt(token)
-        if error is not None or claims is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
-
-        if claims.permissions is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-
-        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
-        if is_administrator is False:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
+        _ = await auth_utils.verifying_admin_user(token, "write", "service")
 
         await repository.ban_one_by_id(id, cache, db)
         return
@@ -143,16 +105,7 @@ async def ban_one_by_id(id: UUID, token: str, cache: GlideClient, db: AsyncSessi
 
 async def ban_jwts_with_filters(token: str, cache: GlideClient, db: AsyncSession, family_id: UUID | None = None, user_id: UUID | None = None):
     try: 
-        claims, error = jwts.verify_jwt(token)
-        if error is not None or claims is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
-
-        if claims.permissions is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-
-        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
-        if is_administrator is False:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
+        _ = await auth_utils.verifying_admin_user(token, "write", "service")
 
         await repository.ban_jwts_with_filters(cache, db, family_id, user_id)
         return
@@ -167,16 +120,7 @@ async def ban_jwts_with_filters(token: str, cache: GlideClient, db: AsyncSession
 
 async def delete_one(id: UUID, token: str, cache: GlideClient, db: AsyncSession):
     try:
-        claims, error = jwts.verify_jwt(token)
-        if error is not None or claims is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
-
-        if claims.permissions is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-
-        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
-        if is_administrator is False:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
+        _ = await auth_utils.verifying_admin_user(token, "write", "service")
 
         await repository.delete_one(id, cache, db)
         return
@@ -192,16 +136,7 @@ async def delete_one(id: UUID, token: str, cache: GlideClient, db: AsyncSession)
 
 async def cleanup(token: str, cache: GlideClient, db: AsyncSession):
     try:
-        claims, error = jwts.verify_jwt(token)
-        if error is not None or claims is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
-
-        if claims.permissions is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-
-        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
-        if is_administrator is False:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
+        _ = await auth_utils.verifying_admin_user(token, "write", "service")
 
         await repository.cleanup(cache, db)
         return
