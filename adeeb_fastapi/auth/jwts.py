@@ -165,3 +165,18 @@ def check_permission(authorized_list: list[str], permissions: list[str], op: OP)
         isAuthorized= False
 
     return isAuthorized
+
+def check_if_banned(permissions: list[str], op: OP):
+    is_banned = False
+
+    for perm in permissions:
+        if op == "write" and perm == RoleEnum.Banned + WRITE_PERM:
+            is_banned = True
+            break
+        elif op == "read" and perm == RoleEnum.Banned + READ_PERM:
+            is_banned = True
+            break
+        else:
+            continue
+    
+    return is_banned
