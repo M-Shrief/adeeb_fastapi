@@ -59,6 +59,9 @@ async def get_one_by_id(id: UUID, token: str, cache: GlideClient, db: AsyncSessi
             is_owner = auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
+            is_banned = jwts.check_if_banned(claims.permissions, "read")
+            if is_banned:
+                raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
         return order
 
@@ -109,11 +112,15 @@ async def add_one_print(order_id: UUID, token: str, data: component_schemas.Prin
 
         is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
+            if order.is_updateable is False:
+                raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
             is_owner = auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            if order.is_updateable is False:
+            is_banned = jwts.check_if_banned(claims.permissions, "write")
+            if is_banned:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
+
 
         repo_result = await repository.add_one_print(order_id, order.user_id, data, cache, db)
         return repo_result
@@ -139,10 +146,13 @@ async def add_many_print(order_id: UUID, token: str, data: list[component_schema
 
         is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
+            if order.is_updateable is False:
+                raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
             is_owner = auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            if order.is_updateable is False:
+            is_banned = jwts.check_if_banned(claims.permissions, "write")
+            if is_banned:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
         repo_result = await repository.add_many_print(order_id, order.user_id, data, cache, db)
@@ -169,10 +179,13 @@ async def update_order(id: UUID, token: str, data: component_schemas.UpdateOrder
 
         is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
+            if order.is_updateable is False:
+                raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
             is_owner = auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            if order.is_updateable is False:
+            is_banned = jwts.check_if_banned(claims.permissions, "write")
+            if is_banned:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
             #  if it's updated by the owner, then remove admin's related fields -- aka assign them to undefine.
@@ -206,10 +219,13 @@ async def update_print(order_id: UUID, print_id: UUID, token: str, data: compone
 
         is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
+            if order.is_updateable is False:
+                raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
             is_owner = auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            if order.is_updateable is False:
+            is_banned = jwts.check_if_banned(claims.permissions, "write")
+            if is_banned:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
         repo_result = await repository.update_print(order_id, print_id, data, cache, db)
@@ -236,10 +252,13 @@ async def delete_order(id: UUID, token: str, cache: GlideClient, db: AsyncSessio
 
         is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
+            if order.is_updateable is False:
+                raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
             is_owner = auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            if order.is_updateable is False:
+            is_banned = jwts.check_if_banned(claims.permissions, "write")
+            if is_banned:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
         repo_result = await repository.delete_order(id, cache, db)
@@ -266,10 +285,13 @@ async def delete_print(order_id: UUID, print_id: UUID, token: str, cache: GlideC
 
         is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
         if is_administrator is False:
+            if order.is_updateable is False:
+                raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
             is_owner = auth_utils.check_item_ownership(order.user_id, claims)
             if is_owner is False:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-            if order.is_updateable is False:
+            is_banned = jwts.check_if_banned(claims.permissions, "write")
+            if is_banned:
                 raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
 
         repo_result = await repository.delete_print(order_id, print_id, cache, db)
