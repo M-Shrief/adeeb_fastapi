@@ -3,6 +3,7 @@ from uuid import UUID
 from typing import Annotated
 ### 
 from adeeb_fastapi.utils.logger import logger
+from adeeb_fastapi.utils.errors import CausedIn
 from adeeb_fastapi.schemas.users import RoleEnum
 from adeeb_fastapi.schemas.jwt import Claims
 from adeeb_fastapi.auth import jwts, errors
@@ -71,3 +72,37 @@ async def write_ops_auth(request: Request, Authorization: Annotated[str | None, 
         logger.error("Error when checking authorization before write operation", request_url=request.url ,error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
+
+async def verifying_admin_user(token: str, op: jwts.OP, caused_in: CausedIn):
+    """Verify JWT token for an admin, returns token's claims or raise AuthError"""
+    claims, error = jwts.verify_jwt(token)
+    if error is not None or claims is None:
+        raise errors.AuthError(reason=errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in=caused_in)
+
+    if claims.permissions is None:
+        raise errors.AuthError(reason=errors.AuthError_ReasonEnum.PERM, caused_in=caused_in)
+
+    is_administrator = check_admin_permissions(claims.permissions, op)
+    if is_administrator is False:
+        raise errors.AuthError(reason=errors.AuthError_ReasonEnum.PERM, caused_in=caused_in)
+
+    return claims
+
+
+async def verifying_normal_user(token: str, op: jwts.OP, caused_in: CausedIn):
+    claims, error = jwts.verify_jwt(token)
+    if error is not None or claims is None:
+        raise errors.AuthError(reason=errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in=caused_in)
+
+    if claims.permissions is None:
+        raise errors.AuthError(reason=errors.AuthError_ReasonEnum.PERM, caused_in=caused_in)
+
+    authorized_list=[
+        jwts.create_authorized_item(RoleEnum.Normal, op),
+    ]
+
+    is_permitted = jwts.check_permission(authorized_list, claims.permissions, op)
+    if is_permitted is False:
+        raise errors.AuthError(reason=errors.AuthError_ReasonEnum.PERM, caused_in=caused_in)
+
+    return claims
