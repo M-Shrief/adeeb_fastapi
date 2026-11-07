@@ -120,6 +120,8 @@ def new_claims(user: jwt_schemas.Claims_User, model: JWTModel | None = None, sch
     else:
         return None
 
+
+type OP = Literal['write', 'read']
 # claims.permissions
 WRITE_PERM = ":write"  # write permission  
 READ_PERM = ":read" # read permission
@@ -132,13 +134,13 @@ def create_permissions(roles: list[RoleEnum])->list[str]:
 
     return permission
 
-def create_authorized_item(role: RoleEnum, op: Literal["read", "write"]):
+def create_authorized_item(role: RoleEnum, op: OP):
     if op == "write":
         return role + WRITE_PERM
     else:
         return role + READ_PERM
 
-def check_permission(authorized_list: list[str], permissions: list[str], op: Literal["read", "write"]):
+def check_permission(authorized_list: list[str], permissions: list[str], op: OP):
     isAuthorized: bool = False
     is_banned = False
 

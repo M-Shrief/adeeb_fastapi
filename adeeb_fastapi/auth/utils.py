@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status, Request, Header, Response
 from uuid import UUID
-from typing import Literal, Annotated
+from typing import Annotated
 ### 
 from adeeb_fastapi.utils.logger import logger
 from adeeb_fastapi.schemas.users import RoleEnum
@@ -19,7 +19,9 @@ def set_refresh_token_cookie(response: Response, refresh_token: str):
         max_age=60 * jwts.REFRESH_EXP_IN_MIN      # 1 weeks (in seconds)
     )
 
-def check_admin_permissions(permissions: list[str], op: Literal["write", "read"]):
+
+
+def check_admin_permissions(permissions: list[str], op: jwts.OP):
     authorized_list=[
         jwts.create_authorized_item(RoleEnum.Analytics, op),
         jwts.create_authorized_item(RoleEnum.DBA, op),
