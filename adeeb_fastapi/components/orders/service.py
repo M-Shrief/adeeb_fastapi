@@ -11,16 +11,7 @@ from adeeb_fastapi.components.orders import repository, schemas as component_sch
 
 async def get_all(queries: api_schemas.SharedQueriesForGetManyRequests, token: str, db: AsyncSession):
     try:
-        claims, error = jwts.verify_jwt(token)
-        if error is not None or claims is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
-
-        if claims.permissions is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-
-        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "read")
-        if is_administrator is False:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
+        _ = await auth_utils.verifying_admin_user(token, "read", "service")
 
         repo_result: api_schemas.GetAll_Res[component_schemas.GetOrders_Res] = await repository.get_all(queries, db)
         return repo_result
@@ -36,20 +27,7 @@ async def get_all(queries: api_schemas.SharedQueriesForGetManyRequests, token: s
 
 async def get_user_orders(queries: api_schemas.SharedQueriesForGetManyRequests, token: str, db: AsyncSession):
     try:
-        claims, error = jwts.verify_jwt(token)
-        if error is not None or claims is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
-
-        if claims.permissions is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-
-        authorized_list=[
-            jwts.create_authorized_item(users_schemas.RoleEnum.Normal, "read"),
-        ]
-
-        is_permitted = jwts.check_permission(authorized_list, claims.permissions, "read")
-        if is_permitted is False:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
+        claims = await auth_utils.verifying_normal_user(token, "read", "service")
 
         if claims.user is None:
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_CLAIMS, caused_in="service")
@@ -105,16 +83,7 @@ async def create_one_order(data: component_schemas.CreateOneOrder_Req, db: Async
 
 async def create_many_orders(token: str, data: list[component_schemas.CreateOneOrder_Req], db: AsyncSession):
     try:
-        claims, error = jwts.verify_jwt(token)
-        if error is not None or claims is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in="service")
-
-        if claims.permissions is None:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
-
-        is_administrator = auth_utils.check_admin_permissions(claims.permissions, "write")
-        if is_administrator is False:
-            raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.PERM, caused_in="service")
+        _ = await auth_utils.verifying_admin_user(token, "write", "service")
 
         repo_result = await repository.create_many_orders(data, db)
         return repo_result
