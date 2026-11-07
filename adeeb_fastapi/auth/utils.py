@@ -22,17 +22,17 @@ def set_refresh_token_cookie(response: Response, refresh_token: str):
 
 
 
-def check_admin_permissions(permissions: list[str], op: jwts.OP):
+async def check_admin_permissions(permissions: list[str], op: jwts.OP):
     authorized_list=[
         jwts.create_authorized_item(RoleEnum.Analytics, op),
         jwts.create_authorized_item(RoleEnum.DBA, op),
         jwts.create_authorized_item(RoleEnum.Management, op),
     ]
-    is_administrator = jwts.check_permission(authorized_list, permissions, op)
+    is_administrator = await jwts.check_permission(authorized_list, permissions, op)
     
     return is_administrator
 
-def check_item_ownership(item_owner_id: UUID | None, claims: Claims):
+async def check_item_ownership(item_owner_id: UUID | None, claims: Claims):
     # if there's no user_id, then it's not a registered user, so no need to compare ids
     # Also we want to pass the model's field directly
     if item_owner_id is None or claims.user is None:
@@ -53,7 +53,7 @@ async def write_ops_auth(request: Request, Authorization: Annotated[str | None, 
             if Authorization is None:
                 raise errors.AuthError(reason=errors.AuthError_ReasonEnum.HEADER, caused_in="middleware")
         
-            _ = await verifying_admin_user(Authorization[7:], "write", "service")
+            _ = await verifying_admin_user(Authorization[7:], "write", "middleware")
 
     except errors.AuthError as e:
         raise e
@@ -66,14 +66,14 @@ async def write_ops_auth(request: Request, Authorization: Annotated[str | None, 
 
 async def verifying_admin_user(token: str, op: jwts.OP, caused_in: CausedIn, token_type: TokenTypeEnum = TokenTypeEnum.ACCESS):
     """Verify JWT token for an admin, returns token's claims or raise AuthError"""
-    claims, error = jwts.verify_jwt(token, token_type)
+    claims, error = await jwts.verify_jwt(token, token_type)
     if error is not None or claims is None:
         raise errors.AuthError(reason=errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in=caused_in)
 
     if claims.permissions is None:
         raise errors.AuthError(reason=errors.AuthError_ReasonEnum.PERM, caused_in=caused_in)
 
-    is_administrator = check_admin_permissions(claims.permissions, op)
+    is_administrator = await check_admin_permissions(claims.permissions, op)
     if is_administrator is False:
         raise errors.AuthError(reason=errors.AuthError_ReasonEnum.PERM, caused_in=caused_in)
 
@@ -81,7 +81,7 @@ async def verifying_admin_user(token: str, op: jwts.OP, caused_in: CausedIn, tok
 
 
 async def verifying_normal_user(token: str, op: jwts.OP, caused_in: CausedIn, token_type: TokenTypeEnum = TokenTypeEnum.ACCESS):
-    claims, error = jwts.verify_jwt(token, token_type)
+    claims, error = await jwts.verify_jwt(token, token_type)
     if error is not None or claims is None:
         raise errors.AuthError(reason=errors.AuthError_ReasonEnum.INVALID_TOKEN, caused_in=caused_in)
 
@@ -92,7 +92,7 @@ async def verifying_normal_user(token: str, op: jwts.OP, caused_in: CausedIn, to
         jwts.create_authorized_item(RoleEnum.Normal, op),
     ]
 
-    is_permitted = jwts.check_permission(authorized_list, claims.permissions, op)
+    is_permitted = await jwts.check_permission(authorized_list, claims.permissions, op)
     if is_permitted is False:
         raise errors.AuthError(reason=errors.AuthError_ReasonEnum.PERM, caused_in=caused_in)
 

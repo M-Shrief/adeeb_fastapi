@@ -12,7 +12,7 @@ from adeeb_fastapi.auth import errors
 
 
 
-def create_jwt(claims: jwt_schemas.Claims)->str:
+async def create_jwt(claims: jwt_schemas.Claims)->str:
     if claims.token_type == "access":
         token = jwt.encode(
             payload=claims.model_dump(mode="json"),
@@ -28,7 +28,7 @@ def create_jwt(claims: jwt_schemas.Claims)->str:
 
     return token
 
-def verify_jwt(token: str, token_type: jwt_schemas.TokenTypeEnum = jwt_schemas.TokenTypeEnum.ACCESS) -> tuple[jwt_schemas.Claims, None] | tuple[None, errors.AuthError_ReasonEnum]:
+async def verify_jwt(token: str, token_type: jwt_schemas.TokenTypeEnum = jwt_schemas.TokenTypeEnum.ACCESS) -> tuple[jwt_schemas.Claims, None] | tuple[None, errors.AuthError_ReasonEnum]:
     """Verify JWT token with secret public key, also verifiy token claims like exp, iat...etc.
 
     Note: it doesn't validate Token's permissions/roles for the request.
@@ -67,8 +67,8 @@ def verify_jwt(token: str, token_type: jwt_schemas.TokenTypeEnum = jwt_schemas.T
 ACCESS_EXP_IN_MIN = 15
 REFRESH_EXP_IN_MIN = 60 * 24 * 7
 
-def new_claims(user: jwt_schemas.Claims_User, model: JWTModel | None = None, schema: jwt_schemas.DescriptiveSchema | None = None):
-    permissions = create_permissions(user.roles)
+async def new_claims(user: jwt_schemas.Claims_User, model: JWTModel | None = None, schema: jwt_schemas.DescriptiveSchema | None = None):
+    permissions = await create_permissions(user.roles)
 
     if model is not None:
         exp= int(model.exp.timestamp())
@@ -128,7 +128,7 @@ type OP = Literal['write', 'read']
 WRITE_PERM = ":write"  # write permission  
 READ_PERM = ":read" # read permission
 
-def create_permissions(roles: list[RoleEnum])->list[str]:
+async def create_permissions(roles: list[RoleEnum])->list[str]:
     permission: list[str] = []
     for role in roles:
         permission.append(role + WRITE_PERM)
@@ -142,7 +142,7 @@ def create_authorized_item(role: RoleEnum, op: OP):
     else:
         return role + READ_PERM
 
-def check_permission(authorized_list: list[str], permissions: list[str], op: OP):
+async def check_permission(authorized_list: list[str], permissions: list[str], op: OP):
     isAuthorized: bool = False
     is_banned = False
 
@@ -166,7 +166,7 @@ def check_permission(authorized_list: list[str], permissions: list[str], op: OP)
 
     return isAuthorized
 
-def check_if_banned(permissions: list[str], op: OP):
+async def check_if_banned(permissions: list[str], op: OP):
     is_banned = False
 
     for perm in permissions:
