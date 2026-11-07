@@ -69,7 +69,7 @@ async def new_tokens(user: jwt_schemas.Claims_User, cache: GlideClient, db: Asyn
         )
 
         access_claims = jwts.new_claims(user, model=access_model)
-        refresh_claims = jwts.new_claims(user, model=refresh_model, token_type="refresh")
+        refresh_claims = jwts.new_claims(user, model=refresh_model)
 
         if access_claims is None or refresh_claims is None:
             raise APIError(status.HTTP_400_BAD_REQUEST, caused_in="repository")
