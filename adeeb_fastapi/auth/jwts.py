@@ -106,7 +106,7 @@ async def new_claims(user: jwt_schemas.Claims_User, model: JWTModel | None = Non
                 permissions=permissions,
                 token_type=schema.token_type,
                 exp=exp,
-                iat=exp,
+                iat=iat,
             )
         else:
             return jwt_schemas.Claims(
