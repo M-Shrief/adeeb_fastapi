@@ -73,7 +73,8 @@ async def signup(data: component_schemas.UserSignup_Req, cache: GlideClient, db:
 async def login(data: component_schemas.UserLogin_Req, cache: GlideClient, db: AsyncSession):
     try:
         user = await repository.get_one_for_login(data.username, db)
-        if passwords.verify_password(data.password, user.password) is False: # if password is incorrect.
+        is_password_verified = await passwords.verify_password(data.password, user.password)
+        if is_password_verified is False: # if password is incorrect.
             raise auth_errors.AuthError(reason=auth_errors.AuthError_ReasonEnum.INVALID_PASS, caused_in="service")
         
         claims_user = jwt_schemas.Claims_User(id=user.id, username=user.username, roles=user.roles)
