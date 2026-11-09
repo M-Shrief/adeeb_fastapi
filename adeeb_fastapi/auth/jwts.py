@@ -131,8 +131,8 @@ READ_PERM = ":read" # read permission
 async def create_permissions(roles: list[RoleEnum])->list[str]:
     permission: list[str] = []
     for role in roles:
-        permission.append(role + WRITE_PERM)
-        permission.append(role + READ_PERM)
+        permission.append(create_authorized_item(role, "read"))
+        permission.append(create_authorized_item(role, "write"))
 
     return permission
 
