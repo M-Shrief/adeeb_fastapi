@@ -1,6 +1,4 @@
 import pytest
-from fastapi import Request, HTTPException
-from starlette.types import Scope
 import jwt
 from uuid import uuid4
 from datetime import datetime
@@ -10,7 +8,7 @@ from adeeb_fastapi.database.models import JWT as JWTModel
 from adeeb_fastapi.schemas.users import RoleEnum
 from adeeb_fastapi.schemas import jwt as jwt_schemas
 from adeeb_fastapi.utils import time as time_utils
-from adeeb_fastapi.auth import jwts, errors
+from adeeb_fastapi.auth import jwts
 
 @pytest.mark.asyncio
 async def test_create_jwt(subtests: pytest.Subtests):
